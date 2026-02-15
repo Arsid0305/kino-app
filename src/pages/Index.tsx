@@ -6,6 +6,7 @@ import { MovieCard } from '@/components/MovieCard';
 import { RatingModal } from '@/components/RatingModal';
 import { WatchHistory } from '@/components/WatchHistory';
 import { FileUpload } from '@/components/FileUpload';
+import { ParseResult } from '@/lib/fileParser';
 import {
   FilterState, Movie, WatchedMovie,
   TIME_OPTIONS, CONTEXT_OPTIONS, FORMAT_OPTIONS,
@@ -37,10 +38,21 @@ const Index = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleMoviesLoaded = (movies: Movie[]) => {
-    const updated = [...customMovies, ...movies];
-    setCustomMovies(updated);
-    localStorage.setItem('cinema-custom-movies', JSON.stringify(updated));
+  const handleMoviesLoaded = (result: ParseResult) => {
+    // Merge watched movies from file into our watched list
+    if (result.watched.length > 0) {
+      const existingIds = new Set(watched.map(w => w.id));
+      const newWatched = result.watched.filter(w => !existingIds.has(w.id));
+      const updatedWatched = [...newWatched, ...watched];
+      setWatched(updatedWatched);
+      localStorage.setItem('cinema-watched', JSON.stringify(updatedWatched));
+    }
+    // Merge to-watch movies into custom movies pool
+    if (result.toWatch.length > 0) {
+      const updated = [...customMovies, ...result.toWatch];
+      setCustomMovies(updated);
+      localStorage.setItem('cinema-custom-movies', JSON.stringify(updated));
+    }
   };
 
   const getMovie = useCallback(() => {
@@ -117,10 +129,11 @@ const Index = () => {
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
 
               <FileUpload onMoviesLoaded={handleMoviesLoaded} />
-              {customMovies.length > 0 && (
-                <p className="text-xs text-muted-foreground text-center">
-                  📂 Загружено фильмов: {customMovies.length} (всего в базе: {MOVIE_DATABASE.length + customMovies.length})
-                </p>
+              {(customMovies.length > 0 || watched.length > 0) && (
+                <div className="text-xs text-muted-foreground text-center space-y-0.5">
+                  <p>📂 В базе: {MOVIE_DATABASE.length + customMovies.length} фильмов к просмотру</p>
+                  {watched.length > 0 && <p>✅ Просмотрено: {watched.length} (влияет на подбор)</p>}
+                </div>
               )}
 
               <motion.button

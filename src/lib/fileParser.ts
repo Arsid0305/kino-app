@@ -1,31 +1,179 @@
-import { Movie } from './movieTypes';
+import { Movie, WatchedMovie } from './movieTypes';
+import * as XLSX from 'xlsx';
 
 /**
- * Parse uploaded file (CSV or JSON) into Movie objects.
- * 
- * Expected CSV columns:
- * title,titleRu,year,genre,duration,mood,description,director,forCompany,timeOfDay,format
- * (genre, mood, timeOfDay — comma-separated within quotes)
- * 
- * Expected JSON: array of Movie-like objects
+ * Parse uploaded file (CSV, JSON or XLSX) into Movie/WatchedMovie objects.
+ * Supports the user's Фильмография.xlsx format with sheets:
+ *   "Просмотрено" (watched), "Буду смотреть" (to watch), "Каталог" (all)
  */
 
-export function parseMovieFile(content: string, filename: string): Movie[] {
-  const ext = filename.split('.').pop()?.toLowerCase();
-  if (ext === 'json') return parseJSON(content);
-  if (ext === 'csv') return parseCSV(content);
-  throw new Error('Поддерживаются только файлы .json и .csv');
+export interface ParseResult {
+  watched: WatchedMovie[];
+  toWatch: Movie[];
 }
 
-function parseJSON(content: string): Movie[] {
+export function parseMovieFile(content: string | ArrayBuffer, filename: string): ParseResult {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  if (ext === 'json') return parseJSON(typeof content === 'string' ? content : new TextDecoder().decode(content));
+  if (ext === 'csv') return parseCSV(typeof content === 'string' ? content : new TextDecoder().decode(content));
+  if (ext === 'xlsx' || ext === 'xls') return parseExcel(content instanceof ArrayBuffer ? content : new TextEncoder().encode(content).buffer);
+  throw new Error('Поддерживаются файлы .json, .csv и .xlsx');
+}
+
+// ===== Excel =====
+function parseExcel(buffer: ArrayBuffer): ParseResult {
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const watched: WatchedMovie[] = [];
+  const toWatch: Movie[] = [];
+
+  // Try sheet names
+  const watchedSheet = workbook.Sheets['Просмотрено'] || workbook.Sheets['Sheet2'];
+  const toWatchSheet = workbook.Sheets['Буду смотреть'] || workbook.Sheets['Sheet3'];
+  const catalogSheet = workbook.Sheets['Каталог'] || workbook.Sheets['Sheet5'];
+
+  if (watchedSheet) {
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(watchedSheet);
+    for (const row of rows) {
+      const movie = excelRowToMovie(row);
+      if (!movie) continue;
+      const rating = parseFloat(row['Моя оценка']);
+      if (rating && !isNaN(rating)) {
+        watched.push({ ...movie, rating, watchedAt: '' });
+      }
+    }
+  }
+
+  if (toWatchSheet) {
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(toWatchSheet);
+    for (const row of rows) {
+      const movie = excelRowToMovie(row);
+      if (!movie) continue;
+      const predicted = parseFloat(row['Ожидаемая моя оценка']);
+      if (predicted && !isNaN(predicted)) {
+        movie.predictedRating = predicted;
+      }
+      movie.reasonToWatch = row['Причина добавления'] || undefined;
+      toWatch.push(movie);
+    }
+  }
+
+  // Fallback: if no named sheets, try catalog
+  if (watched.length === 0 && toWatch.length === 0 && catalogSheet) {
+    const rows = XLSX.utils.sheet_to_json<Record<string, any>>(catalogSheet);
+    for (const row of rows) {
+      const movie = excelRowToMovie(row);
+      if (!movie) continue;
+      const rating = parseFloat(row['Моя оценка']);
+      if (rating && !isNaN(rating)) {
+        watched.push({ ...movie, rating, watchedAt: '' });
+      } else {
+        const predicted = parseFloat(row['Ожидаемая моя оценка']);
+        if (predicted) movie.predictedRating = predicted;
+        toWatch.push(movie);
+      }
+    }
+  }
+
+  // If still nothing, try first sheet
+  if (watched.length === 0 && toWatch.length === 0) {
+    const firstSheet = workbook.Sheets[workbook.SheetNames[1]] || workbook.Sheets[workbook.SheetNames[0]];
+    if (firstSheet) {
+      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(firstSheet);
+      for (const row of rows) {
+        const movie = excelRowToMovie(row);
+        if (!movie) continue;
+        const rating = parseFloat(row['Моя оценка']);
+        if (rating && !isNaN(rating)) {
+          watched.push({ ...movie, rating, watchedAt: '' });
+        } else {
+          toWatch.push(movie);
+        }
+      }
+    }
+  }
+
+  return { watched, toWatch };
+}
+
+function excelRowToMovie(row: Record<string, any>): (Movie & { predictedRating?: number; reasonToWatch?: string }) | null {
+  const title = row['Название'] || row['название'] || '';
+  const titleOrig = row['Оригинальное название'] || row['оригинальное название'] || '';
+  if (!title && !titleOrig) return null;
+
+  const duration = parseInt(row['Продолжительность, мин'] || row['Продолжительность'] || '0') || 0;
+  const genreStr = (row['Жанр'] || row['жанр'] || '') as string;
+  const genres = genreStr.split(',').map(s => s.trim()).filter(Boolean);
+
+  const kpRating = parseFloat(row['Рейтинг Кинопоиска'] || row['рейтинг'] || '0') || 0;
+  const year = parseInt(row['Год производства'] || row['Год'] || row['год'] || '0') || 0;
+  const country = (row['Страна'] || row['страна'] || '') as string;
+  const type = (row['Тип'] || '') as string;
+
+  let format: 'short' | 'medium' | 'long' = 'medium';
+  if (duration > 0) {
+    format = duration < 90 ? 'short' : duration > 120 ? 'long' : 'medium';
+  }
+
+  // Map genres to mood heuristics
+  const mood = genresToMood(genres);
+  const timeOfDay = genresToTimeOfDay(genres);
+
+  return {
+    id: `kp-${row['ID Кинопоиска'] || Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    title: titleOrig || title,
+    titleRu: title,
+    year,
+    genre: genres,
+    duration,
+    mood,
+    description: (row['Описание'] || row['Слоган'] || '') as string,
+    director: '',
+    forCompany: 'any',
+    timeOfDay,
+    format,
+    kpRating,
+    country,
+    type: type === 'TV_SERIES' || type === 'MINI_SERIES' ? 'series' : 'film',
+  };
+}
+
+function genresToMood(genres: string[]): string[] {
+  const moods: string[] = [];
+  const g = genres.map(s => s.toLowerCase());
+  if (g.some(x => ['комедия'].includes(x))) moods.push('happy');
+  if (g.some(x => ['драма', 'биография', 'история'].includes(x))) moods.push('thoughtful');
+  if (g.some(x => ['триллер', 'боевик', 'криминал'].includes(x))) moods.push('excited');
+  if (g.some(x => ['мелодрама'].includes(x))) moods.push('calm', 'nostalgic');
+  if (g.some(x => ['ужасы'].includes(x))) moods.push('excited');
+  if (g.some(x => ['фэнтези', 'фантастика'].includes(x))) moods.push('excited');
+  if (g.some(x => ['военный'].includes(x))) moods.push('thoughtful');
+  if (g.some(x => ['детектив'].includes(x))) moods.push('excited');
+  if (g.some(x => ['музыка'].includes(x))) moods.push('calm');
+  if (moods.length === 0) moods.push('calm');
+  return [...new Set(moods)];
+}
+
+function genresToTimeOfDay(genres: string[]): ('morning' | 'afternoon' | 'evening' | 'night')[] {
+  const g = genres.map(s => s.toLowerCase());
+  if (g.some(x => ['ужасы', 'триллер'].includes(x))) return ['evening', 'night'];
+  if (g.some(x => ['комедия'].includes(x))) return ['afternoon', 'evening'];
+  if (g.some(x => ['драма', 'мелодрама'].includes(x))) return ['evening', 'night'];
+  if (g.some(x => ['боевик', 'приключения'].includes(x))) return ['afternoon', 'evening'];
+  return ['afternoon', 'evening'];
+}
+
+// ===== JSON =====
+function parseJSON(content: string): ParseResult {
   const data = JSON.parse(content);
   const arr = Array.isArray(data) ? data : data.movies ?? data.films ?? [];
-  return arr.map(normalizeMovie).filter(Boolean) as Movie[];
+  const movies = arr.map(normalizeSimpleMovie).filter(Boolean) as Movie[];
+  return { watched: [], toWatch: movies };
 }
 
-function parseCSV(content: string): Movie[] {
+// ===== CSV =====
+function parseCSV(content: string): ParseResult {
   const lines = content.trim().split('\n');
-  if (lines.length < 2) throw new Error('CSV файл пуст или не содержит данных');
+  if (lines.length < 2) throw new Error('CSV файл пуст');
 
   const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
   const movies: Movie[] = [];
@@ -34,19 +182,17 @@ function parseCSV(content: string): Movie[] {
     const values = parseCSVLine(lines[i]);
     const obj: Record<string, string> = {};
     headers.forEach((h, idx) => { obj[h] = values[idx]?.trim() ?? ''; });
-
-    const movie = normalizeMovie(obj);
+    const movie = normalizeSimpleMovie(obj);
     if (movie) movies.push(movie);
   }
 
-  return movies;
+  return { watched: [], toWatch: movies };
 }
 
 function parseCSVLine(line: string): string[] {
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
-
   for (const char of line) {
     if (char === '"') { inQuotes = !inQuotes; continue; }
     if (char === ',' && !inQuotes) { result.push(current); current = ''; continue; }
@@ -62,18 +208,15 @@ function splitField(val: unknown): string[] {
   return [];
 }
 
-function normalizeMovie(raw: Record<string, any>): Movie | null {
+function normalizeSimpleMovie(raw: Record<string, any>): Movie | null {
   const title = raw.title || raw.name || '';
   const titleRu = raw.titleRu || raw.title_ru || raw['название'] || raw['titleru'] || title;
   if (!titleRu && !title) return null;
 
   const duration = Number(raw.duration || raw['длительность'] || raw.runtime || 100);
   let format: 'short' | 'medium' | 'long' = 'medium';
-  if (raw.format) {
-    format = raw.format;
-  } else {
-    format = duration < 90 ? 'short' : duration > 120 ? 'long' : 'medium';
-  }
+  if (raw.format) format = raw.format;
+  else format = duration < 90 ? 'short' : duration > 120 ? 'long' : 'medium';
 
   return {
     id: `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -82,12 +225,11 @@ function normalizeMovie(raw: Record<string, any>): Movie | null {
     year: Number(raw.year || raw['год'] || 2020),
     genre: splitField(raw.genre || raw['жанр']),
     duration,
-    mood: splitField(raw.mood || raw['настроение']),
+    mood: splitField(raw.mood || raw['настроение'] || 'calm'),
     description: raw.description || raw['описание'] || '',
     director: raw.director || raw['режиссёр'] || raw['режиссер'] || '',
     forCompany: (raw.forCompany || raw.company || raw['компания'] || 'any') as Movie['forCompany'],
     timeOfDay: splitField(raw.timeOfDay || raw.time_of_day || raw['время'] || 'evening') as Movie['timeOfDay'],
     format,
-    rating: raw.rating ? Number(raw.rating) : undefined,
   };
 }

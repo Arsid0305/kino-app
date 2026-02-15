@@ -13,6 +13,11 @@ export interface Movie {
   forCompany: 'solo' | 'pair' | 'group' | 'any';
   timeOfDay: ('morning' | 'afternoon' | 'evening' | 'night')[];
   format: 'short' | 'medium' | 'long'; // <90, 90-120, >120
+  kpRating?: number;
+  country?: string;
+  type?: 'film' | 'series';
+  predictedRating?: number;
+  reasonToWatch?: string;
 }
 
 export interface WatchedMovie extends Movie {
