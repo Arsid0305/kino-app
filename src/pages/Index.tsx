@@ -5,12 +5,14 @@ import { FilterSection } from '@/components/FilterSection';
 import { MovieCard } from '@/components/MovieCard';
 import { RatingModal } from '@/components/RatingModal';
 import { WatchHistory } from '@/components/WatchHistory';
+import { FileUpload } from '@/components/FileUpload';
 import {
   FilterState, Movie, WatchedMovie,
   TIME_OPTIONS, CONTEXT_OPTIONS, FORMAT_OPTIONS,
   GENRE_OPTIONS, MOOD_OPTIONS, COMPANY_OPTIONS,
 } from '@/lib/movieTypes';
 import { getRecommendation } from '@/lib/movieEngine';
+import { MOVIE_DATABASE } from '@/lib/movieData';
 
 type Tab = 'recommend' | 'history';
 
@@ -26,15 +28,25 @@ const Index = () => {
     const saved = localStorage.getItem('cinema-watched');
     return saved ? JSON.parse(saved) : [];
   });
+  const [customMovies, setCustomMovies] = useState<Movie[]>(() => {
+    const saved = localStorage.getItem('cinema-custom-movies');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const updateFilter = (key: keyof FilterState) => (value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleMoviesLoaded = (movies: Movie[]) => {
+    const updated = [...customMovies, ...movies];
+    setCustomMovies(updated);
+    localStorage.setItem('cinema-custom-movies', JSON.stringify(updated));
+  };
+
   const getMovie = useCallback(() => {
-    const movie = getRecommendation(filters, watched);
+    const movie = getRecommendation(filters, watched, customMovies);
     setRecommendation(movie);
-  }, [filters, watched]);
+  }, [filters, watched, customMovies]);
 
   const handleRate = (rating: number, notes: string) => {
     if (!ratingMovie) return;
@@ -103,6 +115,13 @@ const Index = () => {
               <FilterSection title="Жанр" options={GENRE_OPTIONS} selected={filters.genre} onSelect={updateFilter('genre')} />
               <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
+
+              <FileUpload onMoviesLoaded={handleMoviesLoaded} />
+              {customMovies.length > 0 && (
+                <p className="text-xs text-muted-foreground text-center">
+                  📂 Загружено фильмов: {customMovies.length} (всего в базе: {MOVIE_DATABASE.length + customMovies.length})
+                </p>
+              )}
 
               <motion.button
                 whileTap={{ scale: 0.97 }}

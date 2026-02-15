@@ -1,10 +1,10 @@
 import { FilterState, Movie, WatchedMovie } from './movieTypes';
 import { MOVIE_DATABASE } from './movieData';
 
-export function getRecommendation(filters: FilterState, watched: WatchedMovie[]): Movie | null {
+export function getRecommendation(filters: FilterState, watched: WatchedMovie[], extraMovies: Movie[] = []): Movie | null {
   const watchedIds = new Set(watched.map(w => w.id));
-  
-  let candidates = MOVIE_DATABASE.filter(m => !watchedIds.has(m.id));
+  const allMovies = [...MOVIE_DATABASE, ...extraMovies];
+  let candidates = allMovies.filter(m => !watchedIds.has(m.id));
 
   // Score each candidate
   const scored = candidates.map(movie => {
