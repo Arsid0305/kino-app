@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, Check, AlertCircle, X, Info } from 'lucide-react';
-import { parseMovieFile } from '@/lib/fileParser';
-import { Movie } from '@/lib/movieTypes';
+import { Upload, Check, AlertCircle, Info } from 'lucide-react';
+import { parseMovieFile, ParseResult } from '@/lib/fileParser';
 
 interface FileUploadProps {
-  onMoviesLoaded: (movies: Movie[]) => void;
+  onMoviesLoaded: (result: ParseResult) => void;
 }
 
 export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
@@ -16,24 +15,35 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > 20 * 1024 * 1024) {
       setStatus('error');
-      setMessage('Файл слишком большой (макс. 5 МБ)');
+      setMessage('Файл слишком большой (макс. 20 МБ)');
       return;
     }
 
     try {
-      const text = await file.text();
-      const movies = parseMovieFile(text, file.name);
-      if (movies.length === 0) {
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      let content: string | ArrayBuffer;
+      if (ext === 'xlsx' || ext === 'xls') {
+        content = await file.arrayBuffer();
+      } else {
+        content = await file.text();
+      }
+
+      const result = parseMovieFile(content, file.name);
+      const total = result.watched.length + result.toWatch.length;
+      if (total === 0) {
         setStatus('error');
         setMessage('Не удалось найти фильмы в файле');
         return;
       }
-      onMoviesLoaded(movies);
+      onMoviesLoaded(result);
       setStatus('success');
-      setMessage(`Загружено ${movies.length} фильмов`);
-      setTimeout(() => { setStatus('idle'); setMessage(''); }, 3000);
+      const parts: string[] = [];
+      if (result.watched.length) parts.push(`${result.watched.length} просмотренных`);
+      if (result.toWatch.length) parts.push(`${result.toWatch.length} к просмотру`);
+      setMessage(`Загружено: ${parts.join(', ')}`);
+      setTimeout(() => { setStatus('idle'); setMessage(''); }, 5000);
     } catch (e) {
       setStatus('error');
       setMessage(e instanceof Error ? e.message : 'Ошибка чтения файла');
@@ -76,24 +86,13 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
             className="overflow-hidden"
           >
             <div className="bg-secondary/50 border border-border rounded-xl p-3 text-xs text-muted-foreground space-y-2">
-              <p className="font-medium text-secondary-foreground">Формат JSON:</p>
-              <pre className="bg-background/50 rounded-lg p-2 overflow-x-auto text-[10px]">
-{`[{
-  "titleRu": "Название",
-  "title": "Title",
-  "year": 2024,
-  "genre": ["drama"],
-  "duration": 120,
-  "mood": ["calm"],
-  "director": "Режиссёр",
-  "description": "Описание"
-}]`}
-              </pre>
-              <p className="font-medium text-secondary-foreground">Формат CSV:</p>
-              <pre className="bg-background/50 rounded-lg p-2 overflow-x-auto text-[10px]">
-{`titleRu,title,year,genre,duration,mood,director
-Название,Title,2024,"drama,comedy",120,"calm",Режиссёр`}
-              </pre>
+              <p className="font-medium text-secondary-foreground">Поддерживаемые форматы:</p>
+              <ul className="space-y-1 list-disc list-inside">
+                <li><strong>.xlsx</strong> — Excel (Фильмография.xlsx)</li>
+                <li><strong>.json</strong> — массив объектов с полями titleRu, genre, year...</li>
+                <li><strong>.csv</strong> — таблица с заголовками</li>
+              </ul>
+              <p className="text-[10px]">Excel: листы «Просмотрено» и «Буду смотреть» импортируются автоматически</p>
             </div>
           </motion.div>
         )}
@@ -109,7 +108,7 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
           isDragging
             ? 'border-primary bg-primary/5'
             : status === 'success'
-            ? 'border-green-500/50 bg-green-500/5'
+            ? 'border-primary/50 bg-primary/5'
             : status === 'error'
             ? 'border-destructive/50 bg-destructive/5'
             : 'border-border hover:border-muted-foreground/40'
@@ -118,7 +117,7 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
         <input
           ref={inputRef}
           type="file"
-          accept=".json,.csv"
+          accept=".json,.csv,.xlsx,.xls"
           onChange={onFileSelect}
           className="hidden"
         />
@@ -127,7 +126,7 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
           <div className="space-y-2">
             <Upload className="w-6 h-6 mx-auto text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              {isDragging ? 'Отпустите файл' : 'JSON или CSV файл'}
+              {isDragging ? 'Отпустите файл' : 'Excel, JSON или CSV'}
             </p>
             <p className="text-[10px] text-muted-foreground/60">Нажмите или перетащите</p>
           </div>
@@ -135,8 +134,8 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
 
         {status === 'success' && (
           <div className="space-y-1">
-            <Check className="w-6 h-6 mx-auto text-green-500" />
-            <p className="text-sm text-green-500">{message}</p>
+            <Check className="w-6 h-6 mx-auto text-primary" />
+            <p className="text-sm text-primary">{message}</p>
           </div>
         )}
 

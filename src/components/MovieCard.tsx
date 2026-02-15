@@ -28,13 +28,27 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
 
       <p className="text-sm text-secondary-foreground leading-relaxed">{movie.description}</p>
 
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5" /> {movie.duration} мин
-        </span>
-        <span className="flex items-center gap-1">
-          <User className="w-3.5 h-3.5" /> {movie.director}
-        </span>
+      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+        {movie.duration > 0 && (
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" /> {movie.duration} мин
+          </span>
+        )}
+        {movie.director && (
+          <span className="flex items-center gap-1">
+            <User className="w-3.5 h-3.5" /> {movie.director}
+          </span>
+        )}
+        {movie.kpRating && movie.kpRating > 0 && (
+          <span className="flex items-center gap-1 text-primary">
+            <Star className="w-3.5 h-3.5 fill-primary" /> КП {movie.kpRating}
+          </span>
+        )}
+        {movie.predictedRating && (
+          <span className="flex items-center gap-1 text-accent">
+            ✨ Прогноз: {movie.predictedRating.toFixed(1)}
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-1.5">
