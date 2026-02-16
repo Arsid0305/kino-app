@@ -12,6 +12,13 @@ export function getRecommendation(filters: FilterState, watched: WatchedMovie[],
   const scored = candidates.map(movie => {
     let score = 50;
 
+    // Type filter
+    if (filters.type) {
+      if (movie.type === filters.type) score += 25;
+      else if (filters.type === 'miniseries' && movie.type === 'series') score += 10;
+      else score -= 20;
+    }
+
     if (filters.timeOfDay && movie.timeOfDay.includes(filters.timeOfDay as any)) score += 20;
     if (filters.format && movie.format === filters.format) score += 20;
     if (filters.genre) {

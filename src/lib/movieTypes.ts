@@ -27,13 +27,20 @@ export interface WatchedMovie extends Movie {
 }
 
 export interface FilterState {
+  type: string | null;
   timeOfDay: string | null;
-  context: string | null; // work / break
+  context: string | null;
   format: string | null;
   genre: string | null;
   mood: string | null;
   company: string | null;
 }
+
+export const TYPE_OPTIONS = [
+  { value: 'film', label: 'Фильм', icon: '🎬' },
+  { value: 'series', label: 'Сериал', icon: '📺' },
+  { value: 'miniseries', label: 'Минисериал', icon: '📼' },
+];
 
 export const TIME_OPTIONS = [
   { value: 'morning', label: 'Утро', icon: '🌅' },
