@@ -1,0 +1,16 @@
+{
+  "name": "КИНО — Умный подбор фильмов",
+  "short_name": "КИНО",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1218",
+  "theme_color": "#d4941a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

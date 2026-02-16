@@ -10,7 +10,7 @@ import { AiAdvisor } from '@/components/AiAdvisor';
 import { ParseResult } from '@/lib/fileParser';
 import {
   FilterState, Movie, WatchedMovie,
-  TIME_OPTIONS, CONTEXT_OPTIONS, FORMAT_OPTIONS,
+  TYPE_OPTIONS, TIME_OPTIONS, CONTEXT_OPTIONS, FORMAT_OPTIONS,
   GENRE_OPTIONS, MOOD_OPTIONS, COMPANY_OPTIONS,
 } from '@/lib/movieTypes';
 import { getRecommendation } from '@/lib/movieEngine';
@@ -21,7 +21,7 @@ type Tab = 'recommend' | 'history';
 const Index = () => {
   const [tab, setTab] = useState<Tab>('recommend');
   const [filters, setFilters] = useState<FilterState>({
-    timeOfDay: null, context: null, format: null,
+    type: null, timeOfDay: null, context: null, format: null,
     genre: null, mood: null, company: null,
   });
   const [recommendation, setRecommendation] = useState<Movie | null>(null);
@@ -122,6 +122,7 @@ const Index = () => {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-5"
             >
+              <FilterSection title="Тип" options={TYPE_OPTIONS} selected={filters.type} onSelect={updateFilter('type')} />
               <FilterSection title="Время дня" options={TIME_OPTIONS} selected={filters.timeOfDay} onSelect={updateFilter('timeOfDay')} />
               <FilterSection title="Контекст" options={CONTEXT_OPTIONS} selected={filters.context} onSelect={updateFilter('context')} />
               <FilterSection title="Формат" options={FORMAT_OPTIONS} selected={filters.format} onSelect={updateFilter('format')} />
