@@ -6,6 +6,7 @@ import { MovieCard } from '@/components/MovieCard';
 import { RatingModal } from '@/components/RatingModal';
 import { WatchHistory } from '@/components/WatchHistory';
 import { FileUpload } from '@/components/FileUpload';
+import { AiAdvisor } from '@/components/AiAdvisor';
 import { ParseResult } from '@/lib/fileParser';
 import {
   FilterState, Movie, WatchedMovie,
@@ -181,6 +182,7 @@ const Index = () => {
           />
         )}
       </AnimatePresence>
+      <AiAdvisor movies={[...MOVIE_DATABASE, ...customMovies]} />
     </div>
   );
 };
