@@ -1,5 +1,35 @@
 import { Movie, WatchedMovie } from './movieTypes';
 import * as XLSX from 'xlsx';
+import { z } from 'zod';
+
+// Zod schema for validating uploaded movie data
+const UploadedMovieSchema = z.object({
+  title: z.string().max(300).optional(),
+  titleRu: z.string().max(300).optional(),
+  name: z.string().max(300).optional(),
+  year: z.preprocess(v => Number(v), z.number().int().min(1800).max(2200)).optional(),
+  genre: z.union([
+    z.array(z.string().max(50)),
+    z.string().max(200),
+  ]).optional(),
+  duration: z.preprocess(v => Number(v), z.number().int().min(0).max(1000)).optional(),
+  mood: z.union([
+    z.array(z.string().max(50)),
+    z.string().max(200),
+  ]).optional(),
+  description: z.string().max(2000).optional(),
+  director: z.string().max(200).optional(),
+  forCompany: z.enum(['solo', 'pair', 'group', 'any']).optional(),
+  timeOfDay: z.union([
+    z.array(z.string()),
+    z.string(),
+  ]).optional(),
+  format: z.enum(['short', 'medium', 'long']).optional(),
+  kpRating: z.preprocess(v => Number(v), z.number().min(0).max(10)).optional(),
+  predictedRating: z.preprocess(v => Number(v), z.number().min(0).max(10)).optional(),
+  type: z.enum(['film', 'series']).optional(),
+  country: z.string().max(100).optional(),
+}).passthrough();
 
 /**
  * Parse uploaded file (CSV, JSON or XLSX) into Movie/WatchedMovie objects.
@@ -164,9 +194,34 @@ function genresToTimeOfDay(genres: string[]): ('morning' | 'afternoon' | 'evenin
 
 // ===== JSON =====
 function parseJSON(content: string): ParseResult {
-  const data = JSON.parse(content);
-  const arr = Array.isArray(data) ? data : data.movies ?? data.films ?? [];
-  const movies = arr.map(normalizeSimpleMovie).filter(Boolean) as Movie[];
+  let data: unknown;
+  try {
+    data = JSON.parse(content);
+  } catch {
+    throw new Error('Файл содержит некорректный JSON');
+  }
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('JSON должен содержать объект или массив');
+  }
+  const arr: unknown[] = Array.isArray(data)
+    ? data
+    : ((data as Record<string, unknown>).movies ?? (data as Record<string, unknown>).films ?? []) as unknown[];
+
+  if (!Array.isArray(arr)) throw new Error('Не найден массив фильмов в JSON');
+
+  const movies = arr
+    .slice(0, 5000) // hard cap
+    .map((item, idx) => {
+      try {
+        const validated = UploadedMovieSchema.parse(item);
+        return normalizeSimpleMovie(validated);
+      } catch {
+        console.warn(`Строка ${idx + 1} пропущена: некорректные данные`);
+        return null;
+      }
+    })
+    .filter((m): m is Movie => m !== null);
+
   return { watched: [], toWatch: movies };
 }
 
@@ -178,12 +233,18 @@ function parseCSV(content: string): ParseResult {
   const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
   const movies: Movie[] = [];
 
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i]);
+  const rowsToProcess = lines.slice(1, 5001); // hard cap 5000 rows
+  for (let i = 0; i < rowsToProcess.length; i++) {
+    const values = parseCSVLine(rowsToProcess[i]);
     const obj: Record<string, string> = {};
     headers.forEach((h, idx) => { obj[h] = values[idx]?.trim() ?? ''; });
-    const movie = normalizeSimpleMovie(obj);
-    if (movie) movies.push(movie);
+    try {
+      const validated = UploadedMovieSchema.parse(obj);
+      const movie = normalizeSimpleMovie(validated);
+      if (movie) movies.push(movie);
+    } catch {
+      console.warn(`CSV строка ${i + 2} пропущена: некорректные данные`);
+    }
   }
 
   return { watched: [], toWatch: movies };
