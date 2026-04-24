@@ -18,6 +18,8 @@ export interface Movie {
   type?: 'film' | 'series';
   predictedRating?: number;
   reasonToWatch?: string;
+  kpQuery?: string;
+  source?: 'local' | 'ai-global' | 'ai-chat';
 }
 
 export interface WatchedMovie extends Movie {

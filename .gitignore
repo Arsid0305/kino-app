@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.env
+.env.*
+!.env.example
 *.local
 
 # Editor directories and files
@@ -22,3 +25,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase
+supabase/.temp/
+
+# Cache
+.cache
+.turbo
+
+# Tests
+coverage/
+
+# OS
+Thumbs.db

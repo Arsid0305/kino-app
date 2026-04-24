@@ -1,4 +1,4 @@
-project_id = "zkbieneugvyfkahklzvu"
+project_id = "ovhwxfdtkzwxfomdlgjv"
 
-[functions.deepseek-chat]
+[functions.openai-chat]
 verify_jwt = false

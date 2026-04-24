@@ -28,6 +28,13 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
 
       <p className="text-sm text-secondary-foreground leading-relaxed">{movie.description}</p>
 
+      {movie.reasonToWatch && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему это матч</p>
+          <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{movie.reasonToWatch}</p>
+        </div>
+      )}
+
       <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
         {movie.duration > 0 && (
           <span className="flex items-center gap-1">
@@ -65,6 +72,14 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
       </div>
 
       <div className="flex gap-3 pt-2">
+        <a
+          href={`https://www.kinopoisk.ru/search/?text=${encodeURIComponent(movie.kpQuery || movie.titleRu)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="px-4 py-3 rounded-xl border border-border text-muted-foreground text-sm font-medium"
+        >
+          КП
+        </a>
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => onRate(movie)}

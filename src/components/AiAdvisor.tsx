@@ -1,100 +1,236 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, X, Sparkles, Loader2 } from 'lucide-react';
-import { Movie } from '@/lib/movieTypes';
+import { Bot, BookmarkPlus, Check, EyeOff, Loader2, Send, Sparkles, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { FilterState, Movie, WatchedMovie } from '@/lib/movieTypes';
+import { buildFilterSummary, buildTasteProfileSummary, toMovieContext } from '@/lib/tasteProfile';
+import { loadChatMessages, saveChatMessage, StoredChatMessage } from '@/lib/chatStore';
+import { getMovieDedupKey } from '@/lib/movieIdentity';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+type AdvisorMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  suggestions: Movie[];
+  createdAt?: string;
+};
 
 interface AiAdvisorProps {
-  movies: Movie[];
+  session: Session | null;
+  watchedMovies: WatchedMovie[];
+  watchlistMovies: Movie[];
+  dismissedMovies: Movie[];
+  filters: FilterState;
+  onAddToWatchlist: (movie: Movie) => void;
+  onRateMovie: (movie: Movie) => void;
+  onDismissMovie: (movie: Movie) => void;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
+interface ChatResponse {
+  message?: string;
+  suggestions?: Movie[];
+  error?: string;
+}
 
-export const AiAdvisor = ({ movies }: AiAdvisorProps) => {
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openai-chat`;
+const MAX_MOVIES_IN_CONTEXT = 30;
+
+async function getAccessToken(): Promise<string> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (sessionData.session?.access_token) return sessionData.session.access_token;
+
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error || !data.session?.access_token) {
+    throw new Error('Не удалось открыть анонимную сессию Supabase');
+  }
+
+  return data.session.access_token;
+}
+
+function normalizeSuggestions(movies: Movie[] | undefined): Movie[] {
+  return (movies ?? []).map((movie, index) => ({
+    ...movie,
+    id: movie.id || `chat:${crypto.randomUUID()}:${index}`,
+    title: movie.title || movie.titleRu || 'Untitled',
+    titleRu: movie.titleRu || movie.title || 'Untitled',
+    genre: movie.genre ?? [],
+    mood: movie.mood ?? [],
+    timeOfDay: movie.timeOfDay ?? ['evening'],
+    format: movie.format ?? 'medium',
+    forCompany: movie.forCompany ?? 'any',
+    description: movie.description ?? '',
+    director: movie.director ?? '',
+    duration: Number(movie.duration ?? 0),
+    year: Number(movie.year ?? 0),
+    source: 'ai-chat',
+  }));
+}
+
+function fromStoredMessage(message: StoredChatMessage): AdvisorMessage {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    suggestions: normalizeSuggestions(message.suggestions),
+    createdAt: message.createdAt,
+  };
+}
+
+export const AiAdvisor = ({
+  session,
+  watchedMovies,
+  watchlistMovies,
+  dismissedMovies,
+  filters,
+  onAddToWatchlist,
+  onRateMovie,
+  onDismissMovie,
+}: AiAdvisorProps) => {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<AdvisorMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const cloudHistoryEnabled = Boolean(session && !session.user.is_anonymous);
+
+  const watchedKeys = useMemo(
+    () => new Set(watchedMovies.map(movie => getMovieDedupKey(movie))),
+    [watchedMovies]
+  );
+  const watchlistKeys = useMemo(
+    () => new Set(watchlistMovies.map(movie => getMovieDedupKey(movie))),
+    [watchlistMovies]
+  );
+  const dismissedKeys = useMemo(
+    () => new Set(dismissedMovies.map(movie => getMovieDedupKey(movie))),
+    [dismissedMovies]
+  );
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, open]);
+
+  useEffect(() => {
+    setHistoryLoaded(false);
+    if (!cloudHistoryEnabled) {
+      setMessages([]);
+    }
+  }, [cloudHistoryEnabled, session?.user.id]);
+
+  useEffect(() => {
+    if (!open || !cloudHistoryEnabled || historyLoaded) return;
+
+    let cancelled = false;
+
+    const loadHistory = async () => {
+      setHistoryLoading(true);
+      try {
+        const storedMessages = await loadChatMessages();
+        if (cancelled) return;
+        setMessages(storedMessages.map(fromStoredMessage));
+      } catch (error) {
+        if (cancelled) return;
+        console.error(error);
+      } finally {
+        if (!cancelled) {
+          setHistoryLoading(false);
+          setHistoryLoaded(true);
+        }
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, cloudHistoryEnabled, historyLoaded]);
+
+  const getSuggestionStatus = (movie: Movie) => {
+    const key = getMovieDedupKey(movie);
+    if (watchedKeys.has(key)) return 'watched';
+    if (watchlistKeys.has(key)) return 'watchlist';
+    if (dismissedKeys.has(key)) return 'dismissed';
+    return 'new';
+  };
+
+  const persistMessage = async (message: AdvisorMessage) => {
+    if (!cloudHistoryEnabled) return;
+    await saveChatMessage(message.role, message.content, message.suggestions);
+  };
 
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg: Msg = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMsg]);
+    const userMessage: AdvisorMessage = {
+      id: `local-user:${crypto.randomUUID()}`,
+      role: 'user',
+      content: text,
+      suggestions: [],
+    };
+
+    const nextConversation = [...messages, userMessage];
+
+    setMessages(nextConversation);
     setInput('');
     setLoading(true);
 
-    let assistantSoFar = '';
-
     try {
+      const accessToken = await getAccessToken();
+      await persistMessage(userMessage).catch(error => {
+        console.error('Failed to persist user chat message:', error);
+      });
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
-          messages: [...messages, userMsg],
-          movies: movies.slice(0, 30).map(m => ({
-            titleRu: m.titleRu,
-            genre: m.genre,
-            kpRating: m.kpRating,
-            predictedRating: m.predictedRating,
-            year: m.year,
+          messages: nextConversation.map(message => ({
+            role: message.role,
+            content: message.content,
           })),
+          filters: buildFilterSummary(filters),
+          tasteProfile: buildTasteProfileSummary(watchedMovies, watchlistMovies),
+          watchedMovies: watchedMovies.slice(0, MAX_MOVIES_IN_CONTEXT).map(toMovieContext),
+          watchlistMovies: watchlistMovies.slice(0, MAX_MOVIES_IN_CONTEXT).map(toMovieContext),
+          dismissedMovies: dismissedMovies.slice(0, MAX_MOVIES_IN_CONTEXT).map(toMovieContext),
         }),
       });
 
+      const payload = await resp.json().catch(() => ({ error: 'Ошибка сервера' } as ChatResponse));
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: 'Ошибка сервера' }));
-        throw new Error(err.error || 'Ошибка');
+        throw new Error(payload.error || 'Ошибка чата');
       }
 
-      if (!resp.body) throw new Error('No stream');
+      const assistantMessage: AdvisorMessage = {
+        id: `local-assistant:${crypto.randomUUID()}`,
+        role: 'assistant',
+        content: payload.message?.trim() || 'Не удалось получить ответ.',
+        suggestions: normalizeSuggestions(payload.suggestions),
+      };
 
-      const reader = resp.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
+      setMessages(prev => [...prev, assistantMessage]);
+      await persistMessage(assistantMessage).catch(error => {
+        console.error('Failed to persist assistant chat message:', error);
+      });
+    } catch (error) {
+      const fallbackMessage: AdvisorMessage = {
+        id: `local-error:${crypto.randomUUID()}`,
+        role: 'assistant',
+        content: `❌ ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`,
+        suggestions: [],
+      };
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-
-        let idx: number;
-        while ((idx = buf.indexOf('\n')) !== -1) {
-          let line = buf.slice(0, idx);
-          buf = buf.slice(idx + 1);
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (!line.startsWith('data: ')) continue;
-          const json = line.slice(6).trim();
-          if (json === '[DONE]') break;
-          try {
-            const parsed = JSON.parse(json);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantSoFar += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === 'assistant') {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
-                }
-                return [...prev, { role: 'assistant', content: assistantSoFar }];
-              });
-            }
-          } catch { /* partial */ }
-        }
-      }
-    } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `❌ ${e.message}` }]);
+      setMessages(prev => [...prev, fallbackMessage]);
     } finally {
       setLoading(false);
     }
@@ -102,7 +238,6 @@ export const AiAdvisor = ({ movies }: AiAdvisorProps) => {
 
   return (
     <>
-      {/* FAB */}
       <motion.button
         whileTap={{ scale: 0.9 }}
         onClick={() => setOpen(true)}
@@ -111,56 +246,139 @@ export const AiAdvisor = ({ movies }: AiAdvisorProps) => {
         <Bot className="w-6 h-6" />
       </motion.button>
 
-      {/* Chat panel */}
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto h-[75vh] flex flex-col bg-card border border-border rounded-t-2xl shadow-2xl overflow-hidden"
+            className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto h-[78vh] flex flex-col bg-card border border-border rounded-t-2xl shadow-2xl overflow-hidden"
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/50">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="font-display text-lg text-foreground">КиноГуру</span>
-                <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">DeepSeek</span>
+                <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                  {cloudHistoryEnabled ? 'cloud history' : 'local'}
+                </span>
               </div>
               <button onClick={() => setOpen(false)} className="text-muted-foreground">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.length === 0 && (
-                <div className="text-center text-muted-foreground text-sm py-8">
-                  <Bot className="w-10 h-10 mx-auto mb-3 text-primary/40" />
-                  <p>Привет! Я КиноГуру 🎬</p>
-                  <p className="text-xs mt-1">Спроси меня что посмотреть сегодня</p>
+              {historyLoading && (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                 </div>
               )}
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
-                      m.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                        : 'bg-secondary text-foreground rounded-bl-md'
-                    }`}
-                  >
-                    {m.role === 'assistant' ? (
-                      <div className="prose prose-sm prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0">
-                        <ReactMarkdown>{m.content}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      m.content
-                    )}
+
+              {!historyLoading && messages.length === 0 && (
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  <Bot className="w-10 h-10 mx-auto mb-3 text-primary/40" />
+                  <p>Спроси, что посмотреть.</p>
+                  <p className="text-xs mt-1">
+                    Я отвечаю только про фильмы, сериалы, мультфильмы и похожий видеоконтент.
+                  </p>
+                </div>
+              )}
+
+              {messages.map(message => (
+                <div key={message.id} className={`space-y-2 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-md'
+                          : 'bg-secondary text-foreground rounded-bl-md'
+                      }`}
+                    >
+                      {message.role === 'assistant' ? (
+                        <div className="prose prose-sm prose-invert max-w-none [&>p]:m-0 [&>ul]:m-0 [&>ol]:m-0">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        message.content
+                      )}
+                    </div>
                   </div>
+
+                  {message.role === 'assistant' && message.suggestions.length > 0 && (
+                    <div className="space-y-2">
+                      {message.suggestions.map(movie => {
+                        const status = getSuggestionStatus(movie);
+
+                        return (
+                          <div key={getMovieDedupKey(movie)} className="rounded-2xl border border-border bg-secondary/40 p-3 space-y-3">
+                            <div className="space-y-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="font-semibold text-sm text-foreground">{movie.titleRu}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {movie.year > 0 ? `${movie.year} • ` : ''}
+                                    {movie.type === 'series' ? 'Сериал' : 'Фильм'}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {movie.reasonToWatch && (
+                                <p className="text-xs text-foreground/90">{movie.reasonToWatch}</p>
+                              )}
+
+                              {movie.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-3">{movie.description}</p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-1.5">
+                              <button
+                                onClick={() => onAddToWatchlist(movie)}
+                                disabled={status === 'watchlist'}
+                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
+                                  status === 'watchlist'
+                                    ? 'border-primary/30 bg-primary/15 text-primary'
+                                    : 'border-border bg-background text-foreground'
+                                }`}
+                              >
+                                <BookmarkPlus className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Буду смотреть</span>
+                              </button>
+
+                              <button
+                                onClick={() => onRateMovie(movie)}
+                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
+                                  status === 'watched'
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-border bg-background text-foreground'
+                                }`}
+                              >
+                                <Check className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Просмотрено</span>
+                              </button>
+
+                              <button
+                                onClick={() => onDismissMovie(movie)}
+                                disabled={status === 'dismissed'}
+                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
+                                  status === 'dismissed'
+                                    ? 'border-destructive/30 bg-destructive/15 text-destructive'
+                                    : 'border-border bg-background text-muted-foreground'
+                                }`}
+                              >
+                                <EyeOff className="w-3.5 h-3.5 shrink-0" />
+                                <span className="truncate">Не буду смотреть</span>
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
-              {loading && messages[messages.length - 1]?.role !== 'assistant' && (
+
+              {loading && (
                 <div className="flex justify-start">
                   <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-3">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -169,19 +387,23 @@ export const AiAdvisor = ({ movies }: AiAdvisorProps) => {
               )}
             </div>
 
-            {/* Input */}
             <div className="p-3 border-t border-border bg-secondary/30">
               <div className="flex gap-2">
                 <input
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-                  placeholder="Что посмотреть сегодня?..."
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
+                  placeholder="Например: короткие серии на несколько дней"
                   className="flex-1 bg-secondary border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={send}
+                  onClick={() => void send()}
                   disabled={loading || !input.trim()}
                   className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40"
                 >

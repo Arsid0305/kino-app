@@ -1,6 +1,7 @@
 import { Movie, WatchedMovie } from './movieTypes';
 import * as XLSX from 'xlsx';
 import { z } from 'zod';
+import { buildStableMovieId } from './movieIdentity';
 
 // Zod schema for validating uploaded movie data
 const UploadedMovieSchema = z.object({
@@ -149,7 +150,16 @@ function excelRowToMovie(row: Record<string, any>): (Movie & { predictedRating?:
   const timeOfDay = genresToTimeOfDay(genres);
 
   return {
-    id: `kp-${row['ID Кинопоиска'] || Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: buildStableMovieId(
+      'kp',
+      {
+        title: titleOrig || title,
+        titleRu: title,
+        year,
+        type: type === 'TV_SERIES' || type === 'MINI_SERIES' ? 'series' : 'film',
+      },
+      row['ID Кинопоиска'] || null,
+    ),
     title: titleOrig || title,
     titleRu: title,
     year,
@@ -280,7 +290,15 @@ function normalizeSimpleMovie(raw: Record<string, any>): Movie | null {
   else format = duration < 90 ? 'short' : duration > 120 ? 'long' : 'medium';
 
   return {
-    id: `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: buildStableMovieId(
+      'upload',
+      {
+        title: title || titleRu,
+        titleRu: titleRu || title,
+        year: Number(raw.year || raw['год'] || 2020),
+        type: raw.type === 'series' ? 'series' : 'film',
+      },
+    ),
     title: title || titleRu,
     titleRu: titleRu || title,
     year: Number(raw.year || raw['год'] || 2020),
@@ -292,5 +310,6 @@ function normalizeSimpleMovie(raw: Record<string, any>): Movie | null {
     forCompany: (raw.forCompany || raw.company || raw['компания'] || 'any') as Movie['forCompany'],
     timeOfDay: splitField(raw.timeOfDay || raw.time_of_day || raw['время'] || 'evening') as Movie['timeOfDay'],
     format,
+    type: raw.type === 'series' ? 'series' : 'film',
   };
 }

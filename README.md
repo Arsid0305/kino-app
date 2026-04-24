@@ -1,73 +1,107 @@
-# Welcome to your Lovable project
+# Screen Suggestion Star
 
-## Project info
+Приложение для персонального подбора фильмов и сериалов с двумя режимами:
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+- локальный fallback по встроенной базе
+- глобальный AI-подбор по всему пространству фильмов, которые пользователь обычно ищет на Кинопоиске
 
-## How can I edit this code?
+Главная идея: пользователь импортирует свою историю и watchlist, хранит их в Supabase и получает рекомендации с любого устройства. OpenAI использует его оценки, любимые жанры, режиссеров, актеров, динамику, сложность и текущие фильтры, а не только локальную базу проекта.
 
-There are several ways of editing your application.
+## Что уже реализовано
 
-**Use Lovable**
+- импорт `xlsx`, `csv`, `json`
+- локальная история и watchlist
+- дедупликация фильмов по `titleRu + year + type`
+- вход по email magic link через Supabase Auth
+- облачное хранение библиотеки пользователя в Supabase
+- глобальная рекомендация через OpenAI + Supabase Edge Function
+- AI-чат с учетом фильтров, истории и watchlist
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Стек
 
-Changes made via Lovable will be committed automatically to this repo.
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- Supabase Auth + Postgres + Edge Functions
+- OpenAI API
+- Vercel
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Локальный запуск
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Проверка
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run build
+npm test
+```
 
-**Use GitHub Codespaces**
+## Клиентские переменные окружения
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Скопируйте `.env.example` в `.env`:
 
-## What technologies are used for this project?
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
 
-This project is built with:
+Для Vercel эти же значения нужно добавить в Project Settings → Environment Variables.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Что нужно создать в Supabase
 
-## How can I deploy this project?
+1. Включить Auth provider для Email.
+2. Настроить redirect URL на домен Vercel.
+3. Применить SQL-миграцию:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sql
+supabase/migrations/20260423_cloud_sync.sql
+```
 
-## Can I connect a custom domain to my Lovable project?
+Она создает таблицу `public.user_movies` с RLS для хранения:
 
-Yes, you can!
+- просмотренных фильмов
+- оценок и заметок
+- watchlist пользователя
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Edge Functions
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+В проекте есть две функции:
+
+- `openai-chat` — AI-чат
+- `movie-recommendation` — главный глобальный подбор
+
+## Server-side secrets для Supabase
+
+Добавьте в Supabase Secrets:
+
+```env
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5-mini
+OPENAI_REASONING_EFFORT=minimal
+OPENAI_RECOMMENDATION_MODEL=gpt-4o-mini
+ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app
+```
+
+## Deploy функций
+
+```sh
+supabase functions deploy openai-chat
+supabase functions deploy movie-recommendation
+```
+
+## Важное ограничение
+
+Глобальный подбор сейчас не использует официальный API Кинопоиска и не сканирует их каталог напрямую. Логика такая:
+
+- OpenAI рекомендует фильм глобально по вкусовому профилю пользователя
+- prompt заставляет выбирать фильмы, которые обычно можно найти или искать на Кинопоиске
+- в карточке дается переход в поиск Кинопоиска
+
+То есть это уже глобальный подбор по вкусу пользователя, но без жесткой серверной верификации наличия фильма в каталоге Кинопоиска. Если захочешь следующий шаг, нужно подключать отдельный источник каталога Кинопоиска или собственный индекс.
