@@ -41,7 +41,7 @@ async function getAccessToken(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.access_token) return sessionData.session.access_token;
 
-  const { data, error } = await supabase.auth.signInAnonymously();
+  const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
   if (error || !data.session?.access_token) {
     throw new Error('Не удалось открыть анонимную сессию Supabase');
   }

@@ -8,8 +8,7 @@ const MAX_MESSAGE_LENGTH = 2000;
 const MAX_TOTAL_MESSAGE_LENGTH = 12000;
 const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
-const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
-const DEFAULT_REASONING_EFFORT = "minimal";
+const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
@@ -53,7 +52,6 @@ function jsonResponse(origin: string | null, status: number, payload: Record<str
 function getClientIp(req: Request): string {
   const forwardedFor = req.headers.get("x-forwarded-for");
   if (forwardedFor) return forwardedFor.split(",")[0].trim();
-
   return req.headers.get("cf-connecting-ip") ??
     req.headers.get("x-real-ip") ??
     "unknown";
@@ -62,12 +60,10 @@ function getClientIp(req: Request): string {
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
   const limit = rateLimits.get(key);
-
   if (!limit || now > limit.resetAt) {
     rateLimits.set(key, { count: 1, resetAt: now + 60_000 });
     return true;
   }
-
   if (limit.count >= MAX_REQUESTS_PER_MINUTE) return false;
   limit.count++;
   return true;
@@ -75,81 +71,9 @@ function checkRateLimit(key: string): boolean {
 
 function isChatMessage(value: unknown): value is ChatMessage {
   if (!value || typeof value !== "object") return false;
-
   const candidate = value as Record<string, unknown>;
   return (candidate.role === "user" || candidate.role === "assistant") &&
     typeof candidate.content === "string";
-}
-
-function buildLegacyChunk(content: string): string {
-  return `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`;
-}
-
-function createLegacySseProxy(stream: ReadableStream<Uint8Array>): ReadableStream<Uint8Array> {
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  return new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const reader = stream.getReader();
-      let buffer = "";
-
-      const flushEvent = (rawEvent: string) => {
-        const lines = rawEvent
-          .split("\n")
-          .map(line => line.trimEnd())
-          .filter(Boolean);
-
-        for (const line of lines) {
-          if (!line.startsWith("data:")) continue;
-
-          const payload = line.slice(5).trim();
-          if (!payload) continue;
-
-          try {
-            const event = JSON.parse(payload) as Record<string, unknown>;
-            if (event.type === "response.output_text.delta" && typeof event.delta === "string") {
-              controller.enqueue(encoder.encode(buildLegacyChunk(event.delta)));
-            }
-
-            if (event.type === "response.completed") {
-              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            }
-
-            if (event.type === "error") {
-              const message = typeof event.message === "string" ? event.message : "OpenAI stream error";
-              controller.enqueue(encoder.encode(buildLegacyChunk(`❌ ${message}`)));
-              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-            }
-          } catch {
-            // Ignore malformed partial events from upstream stream parsing.
-          }
-        }
-      };
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-
-          let boundaryIndex = buffer.indexOf("\n\n");
-          while (boundaryIndex !== -1) {
-            const rawEvent = buffer.slice(0, boundaryIndex);
-            buffer = buffer.slice(boundaryIndex + 2);
-            flushEvent(rawEvent);
-            boundaryIndex = buffer.indexOf("\n\n");
-          }
-        }
-
-        if (buffer.trim()) flushEvent(buffer);
-      } finally {
-        reader.releaseLock();
-        controller.close();
-      }
-    },
-  });
 }
 
 serve(async req => {
@@ -159,7 +83,6 @@ serve(async req => {
     if (!isOriginAllowed(origin)) {
       return jsonResponse(origin, 403, { error: "Origin is not allowed" });
     }
-
     return new Response(null, { headers: getCorsHeaders(origin) });
   }
 
@@ -195,11 +118,11 @@ serve(async req => {
     }
 
     const body = await req.json().catch(() => null) as {
-      messages?: unknown
-      filters?: unknown
-      tasteProfile?: unknown
-      watchedMovies?: unknown
-      watchlistMovies?: unknown
+      messages?: unknown;
+      filters?: unknown;
+      tasteProfile?: unknown;
+      watchedMovies?: unknown;
+      watchlistMovies?: unknown;
     } | null;
 
     if (!body || typeof body !== "object") {
@@ -218,7 +141,7 @@ serve(async req => {
     }
 
     const safeMessages = messages as ChatMessage[];
-    const totalMessageLength = safeMessages.reduce((sum, message) => sum + message.content.length, 0);
+    const totalMessageLength = safeMessages.reduce((sum, m) => sum + m.content.length, 0);
     if (totalMessageLength > MAX_TOTAL_MESSAGE_LENGTH) {
       return jsonResponse(origin, 400, { error: "Диалог слишком длинный для одного запроса" });
     }
@@ -228,21 +151,21 @@ serve(async req => {
     const watchedMovies = Array.isArray(body.watchedMovies) ? body.watchedMovies.slice(0, MAX_MOVIES) : [];
     const watchlistMovies = Array.isArray(body.watchlistMovies) ? body.watchlistMovies.slice(0, MAX_MOVIES) : [];
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
+    if (!DEEPSEEK_API_KEY) {
+      throw new Error("DEEPSEEK_API_KEY is not configured");
     }
-    const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
-    const OPENAI_REASONING_EFFORT = Deno.env.get("OPENAI_REASONING_EFFORT") ?? DEFAULT_REASONING_EFFORT;
+
+    const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
 
 Твоя задача:
 - общаться как опытный кинокуратор
 - использовать вкусовой профиль пользователя, его историю оценок, watchlist и активные фильтры
-- рекомендовать не только фильмы из его локальной базы, а ориентироваться на весь мир фильмов и сериалов, которые обычно можно найти на Кинопоиске
+- рекомендовать фильмы и сериалы из всего мирового кино, которые можно найти на Кинопоиске
 - не советовать уже просмотренное
-- если подходящий вариант уже есть в watchlist пользователя, можешь явно это отметить
+- если подходящий вариант уже есть в watchlist пользователя, явно это отметь
 
 Контекст пользователя:
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без жестких ограничений"}
@@ -252,53 +175,53 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
 
 Правила ответа:
 - отвечай конкретно и по делу
-- если рекомендуешь фильм, объясняй, чем он совпадает по режиссуре, актерам, атмосфере, динамике, сложности или сюжету
-- можешь предлагать как один сильный вариант, так и 2-3 варианта, если вопрос это подразумевает
-- упоминай поиск на Кинопоиске, только если это полезно`;
+- если рекомендуешь фильм, объясняй чем он совпадает по режиссуре, актерам, атмосфере, динамике, сложности или сюжету
+- можешь предлагать один сильный вариант или 2-3, если вопрос это подразумевает`;
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    // DeepSeek использует стандартный OpenAI chat completions формат
+    const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
-        input: [
-          {
-            role: "system",
-            content: [{ type: "input_text", text: systemPrompt }],
-          },
-          ...safeMessages.map(message => ({
-            role: message.role,
-            content: [{ type: "input_text", text: message.content }],
-          })),
+        model: DEEPSEEK_MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...safeMessages,
         ],
-        reasoning: { effort: OPENAI_REASONING_EFFORT },
         stream: true,
+        max_tokens: 1024,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI error:", response.status, errorText);
+      console.error("DeepSeek error:", response.status, errorText);
 
       if (response.status === 429) {
         return jsonResponse(origin, 429, { error: "Слишком много запросов, попробуйте позже." });
       }
 
-      return jsonResponse(origin, 500, { error: "Ошибка OpenAI API" });
+      return jsonResponse(origin, 500, { error: "Ошибка DeepSeek API" });
     }
 
     if (!response.body) {
-      return jsonResponse(origin, 500, { error: "OpenAI returned an empty stream" });
+      return jsonResponse(origin, 500, { error: "DeepSeek returned an empty stream" });
     }
 
-    return new Response(createLegacySseProxy(response.body), {
-      headers: { ...getCorsHeaders(origin), "Content-Type": "text/event-stream" },
+    // DeepSeek streaming уже в стандартном SSE формате — передаём напрямую
+    return new Response(response.body, {
+      headers: {
+        ...getCorsHeaders(origin),
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+      },
     });
+
   } catch (error) {
-    console.error("openai-chat error:", error);
+    console.error("deepseek-chat error:", error);
     return jsonResponse(origin, 500, { error: error instanceof Error ? error.message : "Unknown error" });
   }
 });
