@@ -162,21 +162,52 @@ serve(async req => {
 
 Твоя задача:
 - общаться как опытный кинокуратор
-- использовать вкусовой профиль пользователя, его историю оценок, watchlist и активные фильтры
+- использовать вкусовой профиль пользователя, его историю оценок, список к просмотру и активные фильтры
 - рекомендовать фильмы и сериалы из всего мирового кино, которые можно найти на Кинопоиске
 - не советовать уже просмотренное
-- если подходящий вариант уже есть в watchlist пользователя, явно это отметь
+- если подходящий вариант уже есть в списке к просмотру, явно это отметь
 
 Контекст пользователя:
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без жестких ограничений"}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
 Просмотренное: ${JSON.stringify(watchedMovies)}
-Watchlist: ${JSON.stringify(watchlistMovies)}
+Список к просмотру: ${JSON.stringify(watchlistMovies)}
 
-Правила ответа:
-- отвечай конкретно и по делу
-- если рекомендуешь фильм, объясняй чем он совпадает по режиссуре, актерам, атмосфере, динамике, сложности или сюжету
-- можешь предлагать один сильный вариант или 2-3, если вопрос это подразумевает`;
+ВАЖНО: Всегда отвечай ТОЛЬКО валидным JSON без markdown, без \`\`\`, в следующем формате:
+{
+  "reply": "короткий текстовый ответ на русском, 1-2 предложения",
+  "suggestions": [
+    {
+      "title": "original title",
+      "titleRu": "русское название",
+      "year": 2021,
+      "type": "film",
+      "genre": ["драма", "триллер"],
+      "duration": 120,
+      "director": "Имя Режиссёра",
+      "description": "краткий синопсис 2-3 предложения",
+      "reasonToWatch": "почему это подходит пользователю",
+      "mood": ["задумчивое"],
+      "timeOfDay": ["evening"],
+      "format": "medium",
+      "forCompany": "any",
+      "kpRating": 7.8,
+      "country": "США",
+      "predictedRating": 8.1,
+      "kpQuery": "название для поиска на Кинопоиске"
+    }
+  ]
+}
+
+Правила:
+- suggestions: 1 фильм если вопрос конкретный, 2-3 если пользователь просит варианты
+- reply: только короткое вступление, детали в карточках
+- все поля обязательны
+- type: только "film" или "series"
+- format: только "short", "medium" или "long"
+- forCompany: только "solo", "pair", "group" или "any"
+- timeOfDay: массив из "morning", "afternoon", "evening", "night"
+- только русские слова в тексте`;
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -191,7 +222,7 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
           ...safeMessages,
         ],
         stream: false,
-        max_tokens: 1024,
+        max_tokens: 2048,
       }),
     });
 
@@ -210,15 +241,31 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
       choices?: { message?: { content?: string } }[];
     };
 
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const raw = data.choices?.[0]?.message?.content?.trim();
 
-    if (!text) {
+    if (!raw) {
       return jsonResponse(origin, 500, { error: "DeepSeek вернул пустой ответ" });
     }
 
+    // Убираем markdown-обёртку если есть
+    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+
+    let parsed: { reply?: string; suggestions?: unknown[] };
+    try {
+      parsed = JSON.parse(clean);
+    } catch {
+      return jsonResponse(origin, 200, {
+        message: raw,
+        suggestions: [],
+      });
+    }
+
+    const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : raw;
+    const suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
+
     return jsonResponse(origin, 200, {
-      message: text,
-      suggestions: [],
+      message: reply,
+      suggestions,
     });
 
   } catch (error) {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, BookmarkPlus, Check, EyeOff, Loader2, Send, Sparkles, X } from 'lucide-react';
+import { Bot, BookmarkPlus, Check, EyeOff, Loader2, Send, Sparkles, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +33,7 @@ interface ChatResponse {
   suggestions?: Movie[];
   error?: string;
 }
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
 const MAX_MOVIES_IN_CONTEXT = 30;
 
@@ -40,16 +41,11 @@ async function getAccessToken(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.access_token) return sessionData.session.access_token;
 
- 
-  if (!data.session?.access_token) {
-    const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
-    if (anonError || !anonData.session?.access_token) {
-      throw new Error('Не удалось открыть анонимную сессию Supabase');
-    }
-    return anonData.session.access_token;
+  const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+  if (anonError || !anonData.session?.access_token) {
+    throw new Error('Не удалось открыть анонимную сессию Supabase');
   }
-
-  return sessionData.session.access_token;
+  return anonData.session.access_token;
 }
 
 function normalizeSuggestions(movies: Movie[] | undefined): Movie[] {
@@ -100,6 +96,17 @@ export const AiAdvisor = ({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const cloudHistoryEnabled = Boolean(session && !session.user.is_anonymous);
+
+  const clearChat = async () => {
+    setMessages([]);
+    if (cloudHistoryEnabled) {
+      try {
+        await supabase.from('chat_messages').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      } catch (e) {
+        console.error('Failed to clear chat:', e);
+      }
+    }
+  };
 
   const watchedKeys = useMemo(
     () => new Set(watchedMovies.map(movie => getMovieDedupKey(movie))),
@@ -262,12 +269,23 @@ export const AiAdvisor = ({
                 <Sparkles className="w-4 h-4 text-primary" />
                 <span className="font-display text-lg text-foreground">КиноГуру</span>
                 <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                  {cloudHistoryEnabled ? 'cloud history' : 'local'}
+                  {cloudHistoryEnabled ? 'облако' : 'локально'}
                 </span>
               </div>
-              <button onClick={() => setOpen(false)} className="text-muted-foreground">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <button
+                    onClick={() => void clearChat()}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    title="Очистить чат"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} className="text-muted-foreground">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
