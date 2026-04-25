@@ -49,7 +49,7 @@ async function getAccessToken(): Promise<string> {
     return anonData.session.access_token;
   }
 
-  return data.session.access_token;
+  return sessionData.session.access_token;
 }
 
 function normalizeSuggestions(movies: Movie[] | undefined): Movie[] {
