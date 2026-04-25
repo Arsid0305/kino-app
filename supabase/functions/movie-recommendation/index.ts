@@ -152,6 +152,12 @@ ${JSON.stringify(watchlistMovies)}
 Dismissed:
 ${JSON.stringify(dismissedMovies)}
 
+Дополнительные правила для поля reasonToWatch:
+- используй только русские слова
+- вместо "watchlist" пиши "Буду смотреть"
+- вместо "dismissed" пиши "Отклонённые"
+- вместо "match" пиши "Подходящие"
+
 Верни ТОЛЬКО валидный JSON без markdown, без пояснений, без \`\`\`:
 {
   "title": "original title",

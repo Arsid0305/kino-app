@@ -363,10 +363,10 @@ const Index = () => {
               <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
 
               <div className="text-xs text-muted-foreground text-center space-y-0.5">
-                <p>В облачной watchlist: {customMovies.length}</p>
+                <p>Буду смотреть: {customMovies.length}</p>
                 <p>Просмотрено и оценено: {watched.length}</p>
                 <p>Исключено из подборов: {dismissedMovies.length}</p>
-                {session && <p>Рекомендация идет по всему каталогу, а watchlist и оценки используются как персональный сигнал.</p>}
+                {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
                 {!session && <p>Локальный fallback использует встроенную базу {MOVIE_DATABASE.length} фильмов.</p>}
               </div>
 
