@@ -41,8 +41,12 @@ async function getAccessToken(): Promise<string> {
   if (sessionData.session?.access_token) return sessionData.session.access_token;
 
  
-  if (error || !data.session?.access_token) {
-    throw new Error('Не удалось открыть анонимную сессию Supabase');
+  if (!data.session?.access_token) {
+    const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+    if (anonError || !anonData.session?.access_token) {
+      throw new Error('Не удалось открыть анонимную сессию Supabase');
+    }
+    return anonData.session.access_token;
   }
 
   return data.session.access_token;
