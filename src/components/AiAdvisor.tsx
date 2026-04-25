@@ -34,7 +34,6 @@ interface ChatResponse {
   error?: string;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openai-chat`;
 const MAX_MOVIES_IN_CONTEXT = 30;
 
 async function getAccessToken(): Promise<string> {
