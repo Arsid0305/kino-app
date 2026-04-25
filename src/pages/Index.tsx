@@ -367,7 +367,7 @@ const Index = () => {
                 <p>Просмотрено и оценено: {watched.length}</p>
                 <p>Исключено из подборов: {dismissedMovies.length}</p>
                 {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
-                {!session && <p>Локальный fallback использует встроенную базу {MOVIE_DATABASE.length} фильмов.</p>}
+                {!session && <p>Без подключения используется встроенная база {MOVIE_DATABASE.length}.</p>}
               </div>
 
               <motion.button
