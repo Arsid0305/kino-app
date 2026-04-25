@@ -389,7 +389,7 @@ const Index = () => {
                 {loadingRecommendation
                   ? 'ИЩУ ФИЛЬМ...'
                   : session
-                  ? 'ПОДОБРАТЬ ПО ВСЕМУ КИНОПОИСК-МИРУ'
+                  ? 'ПОДОБРАТЬ ФИЛЬМ'
                   : 'ПОДОБРАТЬ ФИЛЬМ'}
               </motion.button>
 
