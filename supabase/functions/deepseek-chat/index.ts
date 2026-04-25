@@ -178,7 +178,6 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
 - если рекомендуешь фильм, объясняй чем он совпадает по режиссуре, актерам, атмосфере, динамике, сложности или сюжету
 - можешь предлагать один сильный вариант или 2-3, если вопрос это подразумевает`;
 
-    // DeepSeek использует стандартный OpenAI chat completions формат
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
       headers: {
@@ -191,7 +190,7 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
           { role: "system", content: systemPrompt },
           ...safeMessages,
         ],
-        stream: true,
+        stream: false,
         max_tokens: 1024,
       }),
     });
@@ -207,17 +206,19 @@ Watchlist: ${JSON.stringify(watchlistMovies)}
       return jsonResponse(origin, 500, { error: "Ошибка DeepSeek API" });
     }
 
-    if (!response.body) {
-      return jsonResponse(origin, 500, { error: "DeepSeek returned an empty stream" });
+    const data = await response.json() as {
+      choices?: { message?: { content?: string } }[];
+    };
+
+    const text = data.choices?.[0]?.message?.content?.trim();
+
+    if (!text) {
+      return jsonResponse(origin, 500, { error: "DeepSeek вернул пустой ответ" });
     }
 
-    // DeepSeek streaming уже в стандартном SSE формате — передаём напрямую
-    return new Response(response.body, {
-      headers: {
-        ...getCorsHeaders(origin),
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
+    return jsonResponse(origin, 200, {
+      message: text,
+      suggestions: [],
     });
 
   } catch (error) {

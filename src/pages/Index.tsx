@@ -387,7 +387,7 @@ const Index = () => {
                 } disabled:opacity-60`}
               >
                 {loadingRecommendation
-                  ? 'ИЩУ ИДЕАЛЬНЫЙ МАТЧ...'
+                  ? 'ИЩУ ФИЛЬМ...'
                   : session
                   ? 'ПОДОБРАТЬ ПО ВСЕМУ КИНОПОИСК-МИРУ'
                   : 'ПОДОБРАТЬ ФИЛЬМ'}
