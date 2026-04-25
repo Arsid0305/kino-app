@@ -352,13 +352,7 @@ const Index = () => {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-5"
             >
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-secondary-foreground">
-                {session
-                  ? 'Главная кнопка использует OpenAI и твой вкусовой профиль, чтобы искать фильм по всей доступной для Кинопоиска фильмографии, а не только внутри локальной базы.'
-                  : 'Без входа работает локальный подбор. После входа включится глобальный AI-поиск по вкусовому профилю и синхронизация между устройствами.'}
-              </div>
-
-              <FilterSection title="Тип" options={TYPE_OPTIONS} selected={filters.type} onSelect={updateFilter('type')} />
+                           <FilterSection title="Тип" options={TYPE_OPTIONS} selected={filters.type} onSelect={updateFilter('type')} />
               <FilterSection title="Время дня" options={TIME_OPTIONS} selected={filters.timeOfDay} onSelect={updateFilter('timeOfDay')} />
               <FilterSection title="Контекст" options={CONTEXT_OPTIONS} selected={filters.context} onSelect={updateFilter('context')} />
               <FilterSection title="Формат" options={FORMAT_OPTIONS} selected={filters.format} onSelect={updateFilter('format')} />
