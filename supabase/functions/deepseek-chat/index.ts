@@ -31,7 +31,6 @@ async function tavilySearch(query: string): Promise<string> {
         search_depth: "advanced",
         max_results: 5,
         include_answer: true,
-        include_domains: ["imdb.com", "kinopoisk.ru", "themoviedb.org", "rottentomatoes.com", "wikipedia.org"],
       }),
     });
     if (!res.ok) {
@@ -208,19 +207,22 @@ serve(async req => {
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
     // Build bilingual query so Tavily finds results from English-language movie sites.
-    const searchQuery = `${lastUserMsg} movie film series 2025 release`;
+    const searchQuery = `${lastUserMsg} movie film series`;
     const searchContext = await tavilySearch(searchQuery);
 
+    const currentDate = new Date().toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
+
     const searchSection = searchContext
-      ? `\n=== АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (приоритет над обучающими данными) ===\n${searchContext}\n=== КОНЕЦ ДАННЫХ ===\n\nКРИТИЧЕСКИ ВАЖНО: если в данных выше упоминается фильм или сериал — он РЕАЛЬНО СУЩЕСТВУЕТ. Используй эти данные как источник истины. Никогда не говори «такого фильма не существует» или «мне неизвестен такой фильм», если поиск вернул результаты.\n`
+      ? `\n=== АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (приоритет над обучающими данными) ===\n${searchContext}\n=== КОНЕЦ ДАННЫХ ===\n\nКРИТИЧЕСКИ ВАЖНО: используй данные выше как источник истины. Если поиск упоминает фильм — он существует. Если поиск упоминает победителей премии — церемония уже состоялась. Никогда не говори «ещё не состоялось» или «мне неизвестно» если поиск вернул результаты.\n`
       : "";
 
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
+Сегодняшняя дата: ${currentDate}. Твои обучающие данные могут быть устаревшими — всегда доверяй данным из поиска выше.
 
 Твоя задача:
 - общаться как опытный кинокуратор
 - использовать вкусовой профиль пользователя, его историю оценок, список к просмотру и активные фильтры
-- рекомендовать фильмы и сериалы из всего мирового кино, включая свежие релизы 2024-2025 годов
+- рекомендовать фильмы и сериалы из всего мирового кино, включая свежие релизы 2024-2026 годов
 - не советовать уже просмотренное
 - если подходящий вариант уже есть в списке к просмотру, явно это отметь
 - никогда не упоминай Кинопоиск, не говори «нет в каталоге», «недоступно» — просто рекомендуй фильм
