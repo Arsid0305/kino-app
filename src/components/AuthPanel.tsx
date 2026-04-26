@@ -102,9 +102,13 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
         </>
       ) : (
         <>
-          <p className="text-xs text-muted-foreground">
-            Код отправлен на <span className="text-foreground">{sentEmail}</span>. Введи его ниже.
-          </p>
+          <div className="rounded-xl bg-primary/10 border border-primary/20 px-3 py-2.5 space-y-0.5">
+            <p className="text-xs font-semibold text-primary">Письмо отправлено на {sentEmail}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Открой письмо и найди <span className="font-semibold text-foreground">8-значный код</span> — он написан цифрами.
+              Не нажимай на кнопку-ссылку в письме, она не нужна.
+            </p>
+          </div>
           <div className="flex gap-2">
             <input
               value={code}
@@ -124,18 +128,20 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
               Войти
             </button>
           </div>
-          <a
-            href="googlegmail://"
-            className="block text-center text-xs text-primary underline underline-offset-2 py-0.5"
-          >
-            Открыть Gmail →
-          </a>
-          <button
-            onClick={() => { setStep('email'); setCode(''); }}
-            className="text-[11px] text-muted-foreground hover:text-foreground"
-          >
-            Изменить email
-          </button>
+          <div className="flex items-center justify-between">
+            <a
+              href="googlegmail://"
+              className="text-xs text-primary underline underline-offset-2"
+            >
+              Открыть Gmail →
+            </a>
+            <button
+              onClick={() => { setStep('email'); setCode(''); }}
+              className="text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              Изменить email
+            </button>
+          </div>
         </>
       )}
     </div>
