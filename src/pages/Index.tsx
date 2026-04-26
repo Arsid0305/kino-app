@@ -455,6 +455,7 @@ const Index = () => {
         onClose={() => setMovieListSheet(null)}
         movies={movieListSheet === 'watchlist' ? customMovies : dismissedMovies}
         mode={movieListSheet ?? 'watchlist'}
+        onRate={movie => setRatingMovie(movie)}
       />
     </div>
   );

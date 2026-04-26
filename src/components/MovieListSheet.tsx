@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookmarkCheck, XCircle } from 'lucide-react';
+import { BookmarkCheck, Star, XCircle } from 'lucide-react';
 import { Movie } from '@/lib/movieTypes';
 import {
   Sheet,
@@ -13,9 +13,10 @@ interface MovieListSheetProps {
   onClose: () => void;
   movies: Movie[];
   mode: 'watchlist' | 'dismissed';
+  onRate?: (movie: Movie) => void;
 }
 
-export const MovieListSheet = ({ open, onClose, movies, mode }: MovieListSheetProps) => {
+export const MovieListSheet = ({ open, onClose, movies, mode, onRate }: MovieListSheetProps) => {
   const title = mode === 'watchlist' ? 'Буду смотреть' : 'Отказалась';
   const Icon = mode === 'watchlist' ? BookmarkCheck : XCircle;
   const iconClass = mode === 'watchlist' ? 'text-primary' : 'text-muted-foreground';
@@ -51,6 +52,16 @@ export const MovieListSheet = ({ open, onClose, movies, mode }: MovieListSheetPr
                     {movie.year}{movie.genre?.length ? ` · ${movie.genre.slice(0, 2).join(', ')}` : ''}
                   </p>
                 </div>
+                {mode === 'watchlist' && onRate && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => { onRate(movie); onClose(); }}
+                    className="shrink-0 flex items-center gap-1 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-primary" />
+                    <span className="text-xs font-medium">Оценить</span>
+                  </motion.button>
+                )}
               </motion.div>
             ))}
           </div>
