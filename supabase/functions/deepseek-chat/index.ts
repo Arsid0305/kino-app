@@ -28,9 +28,10 @@ async function tavilySearch(query: string): Promise<string> {
       },
       body: JSON.stringify({
         query,
-        search_depth: "basic",
-        max_results: 3,
+        search_depth: "advanced",
+        max_results: 5,
         include_answer: true,
+        include_domains: ["imdb.com", "kinopoisk.ru", "themoviedb.org", "rottentomatoes.com", "wikipedia.org"],
       }),
     });
     if (!res.ok) {
@@ -44,11 +45,11 @@ async function tavilySearch(query: string): Promise<string> {
     };
     const parts: string[] = [];
     if (data.answer) parts.push(data.answer);
-    for (const r of data.results?.slice(0, 3) ?? []) {
-      parts.push(`${r.title}: ${r.content.slice(0, 400)}`);
+    for (const r of data.results?.slice(0, 5) ?? []) {
+      parts.push(`${r.title}: ${r.content.slice(0, 500)}`);
     }
     const result = parts.join("\n");
-    console.log("Tavily found:", result.slice(0, 200));
+    console.log("Tavily found:", result.slice(0, 300));
     return result;
   } catch (e) {
     console.error("Tavily fetch failed:", e);
@@ -206,8 +207,8 @@ serve(async req => {
 
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
-    // Append movie/series keywords in both languages to improve Tavily results.
-    const searchQuery = `${lastUserMsg} фильм сериал movie series`;
+    // Build bilingual query so Tavily finds results from English-language movie sites.
+    const searchQuery = `${lastUserMsg} movie film series 2025 release`;
     const searchContext = await tavilySearch(searchQuery);
 
     const searchSection = searchContext
