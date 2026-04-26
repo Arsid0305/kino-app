@@ -40,6 +40,24 @@ import { requestGlobalRecommendation } from '@/lib/globalRecommendation';
 
 type Tab = 'recommend' | 'history';
 
+// Safari and iOS PWA share cookies but have isolated localStorage.
+// We store just the access_token + refresh_token (both ASCII) in two small
+// cookies so the PWA can restore a session that was established in Safari
+// (e.g. after Google OAuth redirect).
+const cookieExp = () => new Date(Date.now() + 30 * 86400000).toUTCString();
+const saveCookieTokens = (at: string, rt: string) => {
+  document.cookie = `kino_at=${btoa(at)}; expires=${cookieExp()}; path=/`;
+  document.cookie = `kino_rt=${btoa(rt)}; expires=${cookieExp()}; path=/`;
+};
+const readCookie = (name: string): string | null => {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
+  try { return m ? atob(m[1]) : null; } catch { return null; }
+};
+const clearCookieTokens = () => {
+  document.cookie = 'kino_at=; path=/; max-age=0';
+  document.cookie = 'kino_rt=; path=/; max-age=0';
+};
+
 const loadLocalArray = <T,>(key: string): T[] => {
   try {
     const saved = localStorage.getItem(key);
@@ -77,15 +95,33 @@ const Index = () => {
   useEffect(() => { dismissedMoviesRef.current = dismissedMovies; }, [dismissedMovies]);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-    });
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    // onAuthStateChange fires INITIAL_SESSION when the listener is registered.
+    // When Google OAuth redirects back to Safari, Supabase processes the URL
+    // hash and the session surfaces via INITIAL_SESSION (not SIGNED_IN) because
+    // the listener is set up after initialization. We save AT+RT to cookies on
+    // every event that carries a session so the PWA can restore it.
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      if (nextSession && event !== 'SIGNED_OUT') {
+        saveCookieTokens(nextSession.access_token, nextSession.refresh_token);
+      } else if (event === 'SIGNED_OUT') {
+        clearCookieTokens();
+      }
     });
 
-    // iOS PWA: refresh session when app returns to foreground
+    // If no session in localStorage (PWA context after Safari auth), restore
+    // using the refresh_token cookie that Safari saved.
+    const restoreFromCookies = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) { setSession(session); return; }
+      const rt = readCookie('kino_rt');
+      if (!rt) return;
+      const { error } = await supabase.auth.refreshSession({ refresh_token: rt });
+      if (error) clearCookieTokens();
+    };
+    void restoreFromCookies();
+
+    // iOS PWA: re-check session when app comes back to foreground
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         void supabase.auth.getSession().then(({ data }) => setSession(data.session));

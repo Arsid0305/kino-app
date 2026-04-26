@@ -8,54 +8,14 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Hybrid storage: localStorage (fast, same-context) + cookie backup (shared
-// between Safari and iOS PWA which have isolated localStorage).
-const COOKIE_KEY = 'kino_sb';
-const COOKIE_DAYS = 30;
-
-const setCookie = (value: string) => {
-  const exp = new Date(Date.now() + COOKIE_DAYS * 86400000).toUTCString();
-  // base64 is more compact than encodeURIComponent for JSON
-  const encoded = btoa(unescape(encodeURIComponent(value)));
-  document.cookie = `${COOKIE_KEY}=${encoded}; expires=${exp}; path=/`;
-};
-
-const getCookie = (): string | null => {
-  const m = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_KEY}=([^;]*)`));
-  if (!m) return null;
-  try { return decodeURIComponent(escape(atob(m[1]))); } catch { return null; }
-};
-
-const removeCookie = () => {
-  document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
-};
-
-const SESSION_KEY = 'kino_session';
-
-const hybridStorage = {
-  getItem(key: string): string | null {
-    if (key !== SESSION_KEY) return localStorage.getItem(key);
-    return localStorage.getItem(key) ?? getCookie();
-  },
-  setItem(key: string, value: string): void {
-    localStorage.setItem(key, value);
-    if (key === SESSION_KEY) setCookie(value);
-  },
-  removeItem(key: string): void {
-    localStorage.removeItem(key);
-    if (key === SESSION_KEY) removeCookie();
-  },
-};
-
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: hybridStorage,
-    storageKey: SESSION_KEY,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // PKCE stores a code verifier in the PWA's localStorage, but the OAuth
-    // callback opens in Safari which has separate localStorage — verifier lost.
-    // Implicit flow returns tokens directly in the URL hash, no verifier needed.
+    // Implicit flow: tokens come back in the URL hash directly.
+    // PKCE (default) stores a verifier in PWA localStorage, but the OAuth
+    // callback opens in Safari with separate localStorage — verifier is lost.
     flowType: 'implicit',
   }
 });
