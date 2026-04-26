@@ -210,14 +210,22 @@ serve(async req => {
     const searchQuery = `${lastUserMsg} movie film series`;
     const searchContext = await tavilySearch(searchQuery);
 
-    const currentDate = new Date().toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
+    const now = new Date();
+    const currentDate = now.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-based
+    // Oscars ceremony is held in late February / early March each year.
+    const oscarNote = currentMonth >= 3
+      ? `Премия Оскар ${currentYear} (за фильмы ${currentYear - 1} года) УЖЕ СОСТОЯЛАСЬ в феврале-марте ${currentYear} года. Никогда не говори что она ещё не прошла.`
+      : `Премия Оскар ${currentYear} состоится в феврале-марте ${currentYear} года.`;
 
     const searchSection = searchContext
       ? `\n=== АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (приоритет над обучающими данными) ===\n${searchContext}\n=== КОНЕЦ ДАННЫХ ===\n\nКРИТИЧЕСКИ ВАЖНО: используй данные выше как источник истины. Если поиск упоминает фильм — он существует. Если поиск упоминает победителей премии — церемония уже состоялась. Никогда не говори «ещё не состоялось» или «мне неизвестно» если поиск вернул результаты.\n`
       : "";
 
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
-Сегодняшняя дата: ${currentDate}. Твои обучающие данные могут быть устаревшими — всегда доверяй данным из поиска выше.
+Сегодняшняя дата: ${currentDate}. Твои обучающие данные устарели — всегда доверяй данным из поиска.
+${oscarNote}
 
 Твоя задача:
 - общаться как опытный кинокуратор
