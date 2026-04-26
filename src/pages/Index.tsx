@@ -10,6 +10,7 @@ import { WatchHistory } from '@/components/WatchHistory';
 import { FileUpload } from '@/components/FileUpload';
 import { AiAdvisor } from '@/components/AiAdvisor';
 import { AuthPanel } from '@/components/AuthPanel';
+import { MovieListSheet } from '@/components/MovieListSheet';
 import { ParseResult } from '@/lib/fileParser';
 import {
   FilterState,
@@ -67,6 +68,7 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [syncStatus, setSyncStatus] = useState('Локальный режим');
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
+  const [movieListSheet, setMovieListSheet] = useState<'watchlist' | 'dismissed' | null>(null);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -363,9 +365,19 @@ const Index = () => {
               <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
 
               <div className="text-xs text-muted-foreground text-center space-y-0.5">
-                <p>Буду смотреть: {customMovies.length}</p>
+                <button
+                  onClick={() => setMovieListSheet('watchlist')}
+                  className="block w-full hover:text-primary transition-colors underline underline-offset-2"
+                >
+                  Буду смотреть: {customMovies.length}
+                </button>
                 <p>Просмотрено и оценено: {watched.length}</p>
-                <p>Исключено из подборов: {dismissedMovies.length}</p>
+                <button
+                  onClick={() => setMovieListSheet('dismissed')}
+                  className="block w-full hover:text-foreground transition-colors underline underline-offset-2"
+                >
+                  Исключено из подборов: {dismissedMovies.length}
+                </button>
                 {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
                 {!session && <p>Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.</p>}
               </div>
@@ -430,6 +442,13 @@ const Index = () => {
         onAddToWatchlist={movie => void handleAddToWatchlist(movie)}
         onRateMovie={movie => setRatingMovie(movie)}
         onDismissMovie={movie => void handleDismissMovie(movie)}
+      />
+
+      <MovieListSheet
+        open={movieListSheet !== null}
+        onClose={() => setMovieListSheet(null)}
+        movies={movieListSheet === 'watchlist' ? customMovies : dismissedMovies}
+        mode={movieListSheet ?? 'watchlist'}
       />
     </div>
   );
