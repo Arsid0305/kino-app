@@ -112,6 +112,7 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
               onKeyDown={e => { if (e.key === 'Enter') void handleVerify(); }}
               placeholder="123456"
               inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
               className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary tracking-widest text-center"
             />
@@ -123,6 +124,12 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
               Войти
             </button>
           </div>
+          <a
+            href="message://"
+            className="block text-center text-xs text-primary underline underline-offset-2 py-0.5"
+          >
+            Открыть почту
+          </a>
           <button
             onClick={() => { setStep('email'); setCode(''); }}
             className="text-[11px] text-muted-foreground hover:text-foreground"
