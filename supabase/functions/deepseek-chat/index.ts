@@ -14,20 +14,29 @@ const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 // request fails — DeepSeek then falls back to its own training knowledge.
 async function tavilySearch(query: string): Promise<string> {
   const key = Deno.env.get("TAVILY_API_KEY");
-  if (!key) return "";
+  if (!key) {
+    console.log("TAVILY_API_KEY not set, skipping search");
+    return "";
+  }
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${key}`,
+      },
       body: JSON.stringify({
-        api_key: key,
         query,
         search_depth: "basic",
         max_results: 3,
         include_answer: true,
       }),
     });
-    if (!res.ok) return "";
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Tavily error:", res.status, err);
+      return "";
+    }
     const data = await res.json() as {
       answer?: string;
       results?: { title: string; content: string }[];
@@ -37,8 +46,11 @@ async function tavilySearch(query: string): Promise<string> {
     for (const r of data.results?.slice(0, 3) ?? []) {
       parts.push(`${r.title}: ${r.content.slice(0, 400)}`);
     }
-    return parts.join("\n");
-  } catch {
+    const result = parts.join("\n");
+    console.log("Tavily found:", result.slice(0, 200));
+    return result;
+  } catch (e) {
+    console.error("Tavily fetch failed:", e);
     return "";
   }
 }
@@ -193,7 +205,7 @@ serve(async req => {
 
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
-    const searchContext = await tavilySearch(`кино фильм сериал ${lastUserMsg}`);
+    const searchContext = await tavilySearch(lastUserMsg);
 
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
 
