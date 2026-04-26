@@ -207,20 +207,25 @@ serve(async req => {
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
 
-    // Map Russian award/event terms to English so Tavily finds English-language sources.
-    const awardTermMap: Record<string, string> = {
-      "оскар": "Academy Awards Oscar winners",
-      "золотой глобус": "Golden Globe Awards winners",
-      "канны": "Cannes Film Festival winners Palme d'Or",
-      "венеция": "Venice Film Festival Golden Lion winners",
-      "берлин": "Berlin International Film Festival Golden Bear",
-      "бафта": "BAFTA Film Awards winners",
-      "эмми": "Emmy Awards winners",
-    };
+    // Map Russian award/event term roots to English so Tavily finds English-language sources.
+    // Use word roots (not full words) to handle declensions: каннский, берлинале, etc.
+    const awardTermMap: [string, string][] = [
+      ["оскар", "Academy Awards Oscar winners"],
+      ["золот", "Golden Globe Awards winners"],
+      ["канн", "Cannes Film Festival nominees winners Palme d'Or"],
+      ["венеци", "Venice Film Festival Golden Lion winners"],
+      ["берлин", "Berlin International Film Festival Golden Bear winners"],
+      ["бафта", "BAFTA Film Awards winners"],
+      ["эмми", "Emmy Awards winners"],
+      ["сандэнс", "Sundance Film Festival winners"],
+      ["сандэнс", "Sundance Film Festival winners"],
+    ];
+    const yearInMsg = lastUserMsg.match(/\d{4}/)?.[0] ?? "";
     let searchQuery = lastUserMsg;
-    for (const [ru, en] of Object.entries(awardTermMap)) {
-      if (lastUserMsg.toLowerCase().includes(ru)) {
-        searchQuery = `${en} ${lastUserMsg.match(/\d{4}/)?.[0] ?? ""}`.trim();
+    const lowerMsg = lastUserMsg.toLowerCase();
+    for (const [root, en] of awardTermMap) {
+      if (lowerMsg.includes(root)) {
+        searchQuery = `${en} ${yearInMsg}`.trim();
         break;
       }
     }

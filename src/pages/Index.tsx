@@ -491,16 +491,6 @@ const Index = () => {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {ratingMovie && (
-          <RatingModal
-            movie={ratingMovie}
-            onSubmit={(rating, notes) => void handleRate(rating, notes)}
-            onClose={() => setRatingMovie(null)}
-          />
-        )}
-      </AnimatePresence>
-
       <AiAdvisor
         session={session}
         watchedMovies={watched}
@@ -519,6 +509,16 @@ const Index = () => {
         mode={movieListSheet ?? 'watchlist'}
         onRate={movie => setRatingMovie(movie)}
       />
+
+      <AnimatePresence>
+        {ratingMovie && (
+          <RatingModal
+            movie={ratingMovie}
+            onSubmit={(rating, notes) => void handleRate(rating, notes)}
+            onClose={() => setRatingMovie(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
