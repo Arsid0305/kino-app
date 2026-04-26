@@ -125,10 +125,10 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
             </button>
           </div>
           <a
-            href="message://"
+            href="mailto:"
             className="block text-center text-xs text-primary underline underline-offset-2 py-0.5"
           >
-            Открыть почту
+            Открыть почту →
           </a>
           <button
             onClick={() => { setStep('email'); setCode(''); }}
