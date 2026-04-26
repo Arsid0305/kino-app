@@ -10,6 +10,39 @@ const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 
+// Search Tavily for fresh movie data. Returns empty string if key missing or
+// request fails — DeepSeek then falls back to its own training knowledge.
+async function tavilySearch(query: string): Promise<string> {
+  const key = Deno.env.get("TAVILY_API_KEY");
+  if (!key) return "";
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: key,
+        query,
+        search_depth: "basic",
+        max_results: 3,
+        include_answer: true,
+      }),
+    });
+    if (!res.ok) return "";
+    const data = await res.json() as {
+      answer?: string;
+      results?: { title: string; content: string }[];
+    };
+    const parts: string[] = [];
+    if (data.answer) parts.push(data.answer);
+    for (const r of data.results?.slice(0, 3) ?? []) {
+      parts.push(`${r.title}: ${r.content.slice(0, 400)}`);
+    }
+    return parts.join("\n");
+  } catch {
+    return "";
+  }
+}
+
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -158,6 +191,10 @@ serve(async req => {
 
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
+    // Use the last user message as the search query to fetch fresh movie data.
+    const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
+    const searchContext = await tavilySearch(`кино фильм сериал ${lastUserMsg}`);
+
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
 
 Твоя задача:
@@ -167,7 +204,7 @@ serve(async req => {
 - не советовать уже просмотренное
 - если подходящий вариант уже есть в списке к просмотру, явно это отметь
 - никогда не упоминай Кинопоиск, не говори «нет в каталоге», «недоступно» — просто рекомендуй фильм
-
+${searchContext ? `\nАктуальные данные из поиска (используй как источник фактов о свежих фильмах):\n${searchContext}` : ""}
 Контекст пользователя:
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без жестких ограничений"}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
