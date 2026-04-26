@@ -18,6 +18,7 @@ async function tavilySearch(query: string): Promise<string> {
     console.log("TAVILY_API_KEY not set, skipping search");
     return "";
   }
+  console.log("Tavily searching:", query.slice(0, 100));
   try {
     const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
@@ -205,7 +206,13 @@ serve(async req => {
 
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
-    const searchContext = await tavilySearch(lastUserMsg);
+    // Append movie/series keywords in both languages to improve Tavily results.
+    const searchQuery = `${lastUserMsg} фильм сериал movie series`;
+    const searchContext = await tavilySearch(searchQuery);
+
+    const searchSection = searchContext
+      ? `\n=== АКТУАЛЬНЫЕ ДАННЫЕ ИЗ ИНТЕРНЕТА (приоритет над обучающими данными) ===\n${searchContext}\n=== КОНЕЦ ДАННЫХ ===\n\nКРИТИЧЕСКИ ВАЖНО: если в данных выше упоминается фильм или сериал — он РЕАЛЬНО СУЩЕСТВУЕТ. Используй эти данные как источник истины. Никогда не говори «такого фильма не существует» или «мне неизвестен такой фильм», если поиск вернул результаты.\n`
+      : "";
 
     const systemPrompt = `Ты — персональный киносоветник. Отвечай на русском языке.
 
@@ -216,8 +223,7 @@ serve(async req => {
 - не советовать уже просмотренное
 - если подходящий вариант уже есть в списке к просмотру, явно это отметь
 - никогда не упоминай Кинопоиск, не говори «нет в каталоге», «недоступно» — просто рекомендуй фильм
-${searchContext ? `\nАктуальные данные из поиска (используй как источник фактов о свежих фильмах):\n${searchContext}` : ""}
-Контекст пользователя:
+${searchSection}Контекст пользователя:
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без жестких ограничений"}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
 Просмотренное: ${JSON.stringify(watchedMovies)}
