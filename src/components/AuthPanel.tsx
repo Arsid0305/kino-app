@@ -33,7 +33,7 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
   };
 
   const handleVerify = async () => {
-    if (code.trim().length < 6) return;
+    if (code.trim().length < 6 || code.trim().length > 8) return;
     setSubmitting(true);
     try {
       await onVerifyCode(sentEmail, code.trim());
@@ -108,17 +108,17 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
           <div className="flex gap-2">
             <input
               value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
               onKeyDown={e => { if (e.key === 'Enter') void handleVerify(); }}
-              placeholder="123456"
+              placeholder="12345678"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={8}
               className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary tracking-widest text-center"
             />
             <button
               onClick={() => void handleVerify()}
-              disabled={submitting || code.trim().length < 6}
+              disabled={submitting || code.trim().length < 6 || code.trim().length > 8}
               className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
               Войти
