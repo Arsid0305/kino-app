@@ -40,25 +40,6 @@ import { requestGlobalRecommendation } from '@/lib/globalRecommendation';
 
 type Tab = 'recommend' | 'history';
 
-// iOS PWA ↔ Safari share cookies but have separate localStorage.
-// We persist the Supabase refresh_token in a cookie so the PWA can
-// restore the session after the user authenticates via magic link in Safari.
-const KINO_RT_COOKIE = 'kino_rt';
-
-const setRefreshCookie = (token: string) => {
-  const exp = new Date(Date.now() + 30 * 86400000).toUTCString();
-  document.cookie = `${KINO_RT_COOKIE}=${encodeURIComponent(token)}; expires=${exp}; path=/`;
-};
-
-const getRefreshCookie = (): string | null => {
-  const m = document.cookie.match(new RegExp(`(?:^|; )${KINO_RT_COOKIE}=([^;]*)`));
-  return m ? decodeURIComponent(m[1]) : null;
-};
-
-const clearRefreshCookie = () => {
-  document.cookie = `${KINO_RT_COOKIE}=; path=/; max-age=0`;
-};
-
 const loadLocalArray = <T,>(key: string): T[] => {
   try {
     const saved = localStorage.getItem(key);
@@ -96,27 +77,12 @@ const Index = () => {
   useEffect(() => { dismissedMoviesRef.current = dismissedMovies; }, [dismissedMovies]);
 
   useEffect(() => {
-    void supabase.auth.getSession().then(async ({ data }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      // No session in this context (PWA has separate localStorage from Safari).
-      // Try to restore via refresh_token cookie saved when user authed in Safari.
-      if (!data.session) {
-        const rt = getRefreshCookie();
-        if (rt) {
-          const { error } = await supabase.auth.refreshSession({ refresh_token: rt });
-          if (error) clearRefreshCookie();
-        }
-      }
     });
 
-    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      // Keep cookie in sync so PWA can always restore the latest session.
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && nextSession) {
-        setRefreshCookie(nextSession.refresh_token);
-      } else if (event === 'SIGNED_OUT') {
-        clearRefreshCookie();
-      }
     });
 
     // iOS PWA: refresh session when app returns to foreground

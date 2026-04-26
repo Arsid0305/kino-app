@@ -8,9 +8,27 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Cookie-based storage so the session is shared between Safari and the
+// iOS PWA (which have isolated localStorage but share cookies).
+const COOKIE_DAYS = 365;
+const cookieStorage = {
+  getItem(key: string): string | null {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const m = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+    return m ? decodeURIComponent(m[1]) : null;
+  },
+  setItem(key: string, value: string): void {
+    const exp = new Date(Date.now() + COOKIE_DAYS * 86400000).toUTCString();
+    document.cookie = `${key}=${encodeURIComponent(value)}; expires=${exp}; path=/`;
+  },
+  removeItem(key: string): void {
+    document.cookie = `${key}=; path=/; max-age=0`;
+  },
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: cookieStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
