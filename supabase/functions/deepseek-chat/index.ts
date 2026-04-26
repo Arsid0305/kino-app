@@ -206,8 +206,27 @@ serve(async req => {
 
     // Use the last user message as the search query to fetch fresh movie data.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
-    // Build bilingual query so Tavily finds results from English-language movie sites.
-    const searchQuery = `${lastUserMsg} movie film series`;
+
+    // Map Russian award/event terms to English so Tavily finds English-language sources.
+    const awardTermMap: Record<string, string> = {
+      "оскар": "Academy Awards Oscar winners",
+      "золотой глобус": "Golden Globe Awards winners",
+      "канны": "Cannes Film Festival winners Palme d'Or",
+      "венеция": "Venice Film Festival Golden Lion winners",
+      "берлин": "Berlin International Film Festival Golden Bear",
+      "бафта": "BAFTA Film Awards winners",
+      "эмми": "Emmy Awards winners",
+    };
+    let searchQuery = lastUserMsg;
+    for (const [ru, en] of Object.entries(awardTermMap)) {
+      if (lastUserMsg.toLowerCase().includes(ru)) {
+        searchQuery = `${en} ${lastUserMsg.match(/\d{4}/)?.[0] ?? ""}`.trim();
+        break;
+      }
+    }
+    if (searchQuery === lastUserMsg) {
+      searchQuery = `${lastUserMsg} movie film series`;
+    }
     const searchContext = await tavilySearch(searchQuery);
 
     const now = new Date();
