@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Cloud, LogOut, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthPanelProps {
   session: Session | null;
@@ -19,10 +20,15 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
   const [submitting, setSubmitting] = useState(false);
 
   const handleGoogleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
     });
+    if (error) {
+      toast.error(error.message);
+      setSubmitting(false);
+    }
   };
 
   const handleSend = async () => {
@@ -86,7 +92,8 @@ export const AuthPanel = ({ session, syncStatus, onSendCode, onVerifyCode, onSig
           </p>
           <button
             onClick={() => void handleGoogleSignIn()}
-            className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors"
+            disabled={submitting}
+            className="w-full flex items-center justify-center gap-2.5 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground hover:bg-secondary/60 transition-colors disabled:opacity-50"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z" fill="#4285F4"/>
