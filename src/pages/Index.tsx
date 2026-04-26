@@ -85,7 +85,18 @@ const Index = () => {
       setSession(nextSession);
     });
 
-    return () => data.subscription.unsubscribe();
+    // iOS PWA: refresh session when app returns to foreground
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void supabase.auth.getSession().then(({ data }) => setSession(data.session));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      data.subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
   useEffect(() => {
