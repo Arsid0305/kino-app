@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
 import { Clapperboard, History, Sparkles } from 'lucide-react';
@@ -69,6 +69,12 @@ const Index = () => {
   const [syncStatus, setSyncStatus] = useState('Локальный режим');
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
   const [movieListSheet, setMovieListSheet] = useState<'watchlist' | 'dismissed' | null>(null);
+  const watchedRef = useRef(watched);
+  const customMoviesRef = useRef(customMovies);
+  const dismissedMoviesRef = useRef(dismissedMovies);
+  useEffect(() => { watchedRef.current = watched; }, [watched]);
+  useEffect(() => { customMoviesRef.current = customMovies; }, [customMovies]);
+  useEffect(() => { dismissedMoviesRef.current = dismissedMovies; }, [dismissedMovies]);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data }) => {
@@ -112,7 +118,7 @@ const Index = () => {
           return;
         }
 
-        await seedCloudLibrary(watched, customMovies, dismissedMovies);
+        await seedCloudLibrary(watchedRef.current, customMoviesRef.current, dismissedMoviesRef.current);
         if (cancelled) return;
         setSyncStatus('Локальная база загружена в Supabase');
       } catch (error) {
@@ -128,7 +134,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [session, watched, customMovies, dismissedMovies]);
+  }, [session]);
 
   const updateFilter = (key: keyof FilterState) => (value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
