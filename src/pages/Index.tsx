@@ -287,12 +287,10 @@ const Index = () => {
     }
   };
 
-  const handleSendMagicLink = async (email: string) => {
+  const handleSendCode = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
+      options: { shouldCreateUser: true },
     });
 
     if (error) {
@@ -300,7 +298,18 @@ const Index = () => {
       throw error;
     }
 
-    toast.success('Письмо со ссылкой для входа отправлено');
+    toast.success('Код отправлен на email');
+  };
+
+  const handleVerifyCode = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success('Вход выполнен');
   };
 
   const handleSignOut = async () => {
@@ -358,7 +367,8 @@ const Index = () => {
         <AuthPanel
           session={session}
           syncStatus={syncStatus}
-          onSendLink={handleSendMagicLink}
+          onSendCode={handleSendCode}
+          onVerifyCode={handleVerifyCode}
           onSignOut={handleSignOut}
         />
 
