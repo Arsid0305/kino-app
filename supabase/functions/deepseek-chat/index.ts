@@ -28,8 +28,8 @@ async function tavilySearch(query: string): Promise<string> {
       },
       body: JSON.stringify({
         query,
-        search_depth: "advanced",
-        max_results: 5,
+        search_depth: "basic",
+        max_results: 3,
         include_answer: true,
       }),
     });
@@ -280,7 +280,7 @@ ${searchSection}Контекст пользователя:
           ...safeMessages,
         ],
         stream: false,
-        max_tokens: 2048,
+        max_tokens: 1024,
       }),
     });
 
