@@ -8,27 +8,49 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Cookie-based storage so the session is shared between Safari and the
-// iOS PWA (which have isolated localStorage but share cookies).
-const COOKIE_DAYS = 365;
-const cookieStorage = {
+// Hybrid storage: localStorage (fast, same-context) + cookie backup (shared
+// between Safari and iOS PWA which have isolated localStorage).
+const COOKIE_KEY = 'kino_sb';
+const COOKIE_DAYS = 30;
+
+const setCookie = (value: string) => {
+  const exp = new Date(Date.now() + COOKIE_DAYS * 86400000).toUTCString();
+  // base64 is more compact than encodeURIComponent for JSON
+  const encoded = btoa(unescape(encodeURIComponent(value)));
+  document.cookie = `${COOKIE_KEY}=${encoded}; expires=${exp}; path=/`;
+};
+
+const getCookie = (): string | null => {
+  const m = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_KEY}=([^;]*)`));
+  if (!m) return null;
+  try { return decodeURIComponent(escape(atob(m[1]))); } catch { return null; }
+};
+
+const removeCookie = () => {
+  document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
+};
+
+const SESSION_KEY = 'kino_session';
+
+const hybridStorage = {
   getItem(key: string): string | null {
-    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const m = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
-    return m ? decodeURIComponent(m[1]) : null;
+    if (key !== SESSION_KEY) return localStorage.getItem(key);
+    return localStorage.getItem(key) ?? getCookie();
   },
   setItem(key: string, value: string): void {
-    const exp = new Date(Date.now() + COOKIE_DAYS * 86400000).toUTCString();
-    document.cookie = `${key}=${encodeURIComponent(value)}; expires=${exp}; path=/`;
+    localStorage.setItem(key, value);
+    if (key === SESSION_KEY) setCookie(value);
   },
   removeItem(key: string): void {
-    document.cookie = `${key}=; path=/; max-age=0`;
+    localStorage.removeItem(key);
+    if (key === SESSION_KEY) removeCookie();
   },
 };
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: cookieStorage,
+    storage: hybridStorage,
+    storageKey: SESSION_KEY,
     persistSession: true,
     autoRefreshToken: true,
   }
