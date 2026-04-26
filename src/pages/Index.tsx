@@ -434,7 +434,12 @@ const Index = () => {
                 >
                   Буду смотреть: {customMovies.length}
                 </button>
-                <p>Просмотрено и оценено: {watched.length}</p>
+                <button
+                  onClick={() => setTab('history')}
+                  className="block w-full hover:text-primary transition-colors underline underline-offset-2"
+                >
+                  Просмотрено и оценено: {watched.length}
+                </button>
                 <button
                   onClick={() => setMovieListSheet('dismissed')}
                   className="block w-full hover:text-foreground transition-colors underline underline-offset-2"
@@ -468,7 +473,7 @@ const Index = () => {
                     key={recommendation.id}
                     movie={recommendation}
                     onRate={setRatingMovie}
-                    onSkip={() => void getMovie()}
+                    onSkip={() => { void handleDismissMovie(recommendation); void getMovie(); }}
                   />
                 )}
               </AnimatePresence>

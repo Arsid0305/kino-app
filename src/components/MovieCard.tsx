@@ -73,12 +73,12 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
 
       <div className="flex gap-3 pt-2">
         <a
-          href={`https://www.kinopoisk.ru/search/?text=${encodeURIComponent(movie.kpQuery || movie.titleRu)}`}
+          href={`https://yandex.ru/search/?text=${encodeURIComponent(`${movie.titleRu} ${movie.year} смотреть`)}`}
           target="_blank"
           rel="noreferrer"
-          className="px-4 py-3 rounded-xl border border-border text-muted-foreground text-sm font-medium"
+          className="px-3 py-3 rounded-xl border border-border text-muted-foreground text-xs font-medium leading-tight text-center"
         >
-          КП
+          Где<br/>смотреть
         </a>
         <motion.button
           whileTap={{ scale: 0.95 }}
