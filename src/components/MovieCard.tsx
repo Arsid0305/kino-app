@@ -30,7 +30,7 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
 
       {movie.reasonToWatch && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему это матч</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
           <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{movie.reasonToWatch}</p>
         </div>
       )}
