@@ -121,11 +121,18 @@ const Index = () => {
     };
     void restoreFromCookies();
 
-    // iOS PWA: re-check session when app comes back to foreground
+    // iOS PWA: re-check session when app comes back to foreground.
+    // If getSession returns null (e.g. token expired while backgrounded),
+    // fall back to the cookie refresh_token before giving up.
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        void supabase.auth.getSession().then(({ data }) => setSession(data.session));
-      }
+      if (document.visibilityState !== 'visible') return;
+      supabase.auth.getSession().then(async ({ data }) => {
+        if (data.session) { setSession(data.session); return; }
+        const rt = readCookie('kino_rt');
+        if (!rt) return;
+        const { error } = await supabase.auth.refreshSession({ refresh_token: rt });
+        if (error) clearCookieTokens();
+      });
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
@@ -261,7 +268,6 @@ const Index = () => {
     localStorage.setItem('cinema-custom-movies', JSON.stringify(updatedWatchlist));
     localStorage.setItem('cinema-dismissed-movies', JSON.stringify(updatedDismissed));
     setRatingMovie(null);
-    setRecommendation(null);
 
     if (session) {
       try {
