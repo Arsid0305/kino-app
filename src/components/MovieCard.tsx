@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Movie } from '@/lib/movieTypes';
-import { Star, Clock, User, Film, Bookmark } from 'lucide-react';
+import { Star, Clock, User, Film } from 'lucide-react';
 
 interface MovieCardProps {
   movie: Movie;
@@ -85,7 +85,7 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => (
           onClick={() => onRate(movie)}
           className="flex-1 bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2"
         >
-          <Bookmark className="w-4 h-4" /> Буду смотреть
+          <Star className="w-4 h-4" /> Смотрю!
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.95 }}

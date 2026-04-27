@@ -314,6 +314,7 @@ ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр ти�
         ],
         stream: false,
         max_tokens: 1024,
+        temperature: 1.2,
       }),
     });
 
