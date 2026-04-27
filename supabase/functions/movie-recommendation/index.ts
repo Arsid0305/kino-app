@@ -179,7 +179,7 @@ serve(async req => {
 
     // Make 3 sequential calls — each knows what was already picked to avoid duplicates
     const picked: Record<string, unknown>[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       try {
         const alreadyShown = picked.map(m => (m.titleRu ?? m.title ?? "") as string).join(", ");
         const movie = await callOnce(alreadyShown);
