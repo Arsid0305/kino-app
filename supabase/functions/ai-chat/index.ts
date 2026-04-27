@@ -24,8 +24,8 @@ async function callOpenAICompat(
   useCompletionTokens = false,
 ): Promise<string> {
   const tokenParam = useCompletionTokens
-    ? { max_completion_tokens: 1024 }
-    : { max_tokens: 1024 };
+    ? { max_completion_tokens: 3000 }
+    : { max_tokens: 3000 };
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -56,17 +56,14 @@ async function callClaude(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1024,
+      max_tokens: 3000,
       system: systemPrompt,
-      // Prefill assistant turn with "{" so Claude returns pure JSON without preamble
-      messages: [...messages, { role: "assistant", content: "{" }],
+      messages,
     }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
   const d = await res.json() as { content?: { type: string; text: string }[] };
-  const text = d.content?.[0]?.text?.trim() ?? "";
-  // Claude continues from "{" — prepend it back
-  return "{" + text;
+  return d.content?.[0]?.text?.trim() ?? "";
 }
 
 async function callGemini(
