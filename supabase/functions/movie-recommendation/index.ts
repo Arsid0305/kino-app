@@ -128,22 +128,24 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    const prompt = `Ты — персональный кинокритик. Подбери РОВНО 3 фильма или сериала для просмотра — каждый разного жанра и настроения.
+    const watchlistTitles = (watchlistMovies as {titleRu?: string; title?: string}[])
+      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
+    const watchedTitles = (watchedMovies as {titleRu?: string; title?: string}[])
+      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
+    const dismissedTitles = (dismissedMovies as {titleRu?: string; title?: string}[])
+      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
 
-Правила:
-- Все 3 должны быть разных жанров и разного настроения — не повторяй жанры между вариантами
-- Не предлагай фильмы из просмотренного списка
-- Не предлагай фильмы из watchlist — они уже в списке
-- Не предлагай фильмы из dismissed
-- Опирайся на вкусовой профиль и фильтры
+    const prompt = `Ты — персональный кинокритик. Подбери РОВНО 3 фильма или сериала — каждый РАЗНОГО жанра и РАЗНОГО настроения.
+
+СТРОГО ЗАПРЕЩЕНО предлагать:
+- Уже просмотренные: ${watchedTitles || "нет"}
+- Уже в списке «Буду смотреть»: ${watchlistTitles || "нет"}
+- Отклонённые: ${dismissedTitles || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
-Просмотренное: ${JSON.stringify(watchedMovies)}
-Watchlist: ${JSON.stringify(watchlistMovies)}
-Dismissed: ${JSON.stringify(dismissedMovies)}
 
-Верни ТОЛЬКО валидный JSON без markdown, без \`\`\`:
+Верни ТОЛЬКО валидный JSON-массив из 3 объектов без markdown, без \`\`\`:
 [
   {
     "title": "original title",
@@ -163,7 +165,7 @@ Dismissed: ${JSON.stringify(dismissedMovies)}
     "country": "США",
     "predictedRating": 8.6
   }
-]``;
+]`;
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -175,7 +177,8 @@ Dismissed: ${JSON.stringify(dismissedMovies)}
         model: DEEPSEEK_MODEL,
         messages: [{ role: "user", content: prompt }],
         stream: false,
-        max_tokens: 1024,
+        max_tokens: 2500,
+        temperature: 1.1,
       }),
     });
 
