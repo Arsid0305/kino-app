@@ -21,14 +21,18 @@ async function callOpenAICompat(
   model: string,
   systemPrompt: string,
   messages: ChatMessage[],
+  useCompletionTokens = false,
 ): Promise<string> {
+  const tokenParam = useCompletionTokens
+    ? { max_completion_tokens: 1024 }
+    : { max_tokens: 1024 };
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
-      max_tokens: 1024,
+      ...tokenParam,
       temperature: 1.0,
     }),
   });
@@ -110,7 +114,7 @@ async function callProvider(
       const key = Deno.env.get("OPENAI_API_KEY");
       if (!key) throw new Error("OPENAI_API_KEY не настроен");
       const model = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
-      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages);
+      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages, true);
     }
     case "gemini": {
       const key = Deno.env.get("GOOGLE_API_KEY");

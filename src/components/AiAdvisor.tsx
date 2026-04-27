@@ -39,12 +39,44 @@ const MAX_MOVIES_IN_CONTEXT = 30;
 
 type Provider = 'claude' | 'gpt4o' | 'gemini' | 'deepseek';
 
-const PROVIDERS: { id: Provider; label: string; dot: string }[] = [
-  { id: 'claude',    label: 'Claude',  dot: '#E8784D' },
-  { id: 'gpt4o',     label: 'GPT',     dot: '#10A37F' },
-  { id: 'gemini',    label: 'Gemini',  dot: '#4285F4' },
-  { id: 'deepseek',  label: 'DS',      dot: '#4D6AFF' },
+const PROVIDERS: { id: Provider; label: string }[] = [
+  { id: 'claude',   label: 'Claude' },
+  { id: 'gpt4o',    label: 'GPT'    },
+  { id: 'gemini',   label: 'Gemini' },
+  { id: 'deepseek', label: 'DS'     },
 ];
+
+const ProviderIcon = ({ id }: { id: Provider }) => {
+  switch (id) {
+    case 'claude':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"
+            stroke="#E8784D" strokeWidth="2.2" strokeLinecap="round"/>
+          <circle cx="12" cy="12" r="2.5" fill="#E8784D"/>
+        </svg>
+      );
+    case 'gpt4o':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#10A37F">
+          <path d="M20.7 8.5a5.5 5.5 0 00-3.9-3.3A5.5 5.5 0 0012 2a5.5 5.5 0 00-4.8 2.8 5.5 5.5 0 00-3.9 3.3A5.5 5.5 0 004 12a5.5 5.5 0 00.7 3.5 5.5 5.5 0 003.9 3.3A5.5 5.5 0 0012 22a5.5 5.5 0 004.8-2.8 5.5 5.5 0 003.9-3.3A5.5 5.5 0 0020 12a5.5 5.5 0 00-.3-3.5zm-8.7 9a3.7 3.7 0 01-2-.6l5.9-3.4v2a3.7 3.7 0 01-3.9 2zm-6.5-3.4a3.7 3.7 0 01-.4-2.5l5.9 3.4-3 1.7a3.7 3.7 0 01-2.5-2.6zM4.7 8.6a3.7 3.7 0 012-.9v6.8l-3-1.7a3.7 3.7 0 011-5.2zm13.5 6.8l-5.9-3.4 3-1.7 2.9 1.7v2a3.7 3.7 0 010 1.4zm.4-4.5L12.7 7.5l3-1.7a3.7 3.7 0 012.4 3.2l.5-.1zm-9.9-4.5l2-1.1a3.7 3.7 0 012 .6L7.4 9.5l-3-1.7a3.7 3.7 0 013.3-1.4z"/>
+        </svg>
+      );
+    case 'gemini':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#4285F4">
+          <path d="M12 2C10.5 6.5 6.5 10.5 2 12c4.5 1.5 8.5 5.5 10 10 1.5-4.5 5.5-8.5 10-10-4.5-1.5-8.5-5.5-10-10z"/>
+        </svg>
+      );
+    case 'deepseek':
+      return (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#4D6AFF">
+          <path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9zm0 2c3.9 0 7 3.1 7 7s-3.1 7-7 7-7-3.1-7-7 3.1-7 7-7z"/>
+          <path d="M8 12c0 .6.1 1.2.3 1.7L12 8l3.7 5.7c.2-.5.3-1.1.3-1.7 0-2.2-1.8-4-4-4s-4 1.8-4 4z"/>
+        </svg>
+      );
+  }
+};
 
 async function getAccessToken(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
@@ -286,23 +318,21 @@ export const AiAdvisor = ({
             <div className="border-b border-border bg-secondary/50">
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="font-display text-lg text-foreground">Кино AI</span>
-                </div>
-                <div className="flex items-center gap-2">
                   {messages.length > 0 && (
                     <button
                       onClick={() => void clearChat()}
-                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-destructive hover:text-destructive/70 transition-colors"
                       title="Очистить чат"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
-                  <button onClick={() => setOpen(false)} className="text-muted-foreground">
-                    <X className="w-5 h-5" />
-                  </button>
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="font-display text-lg text-foreground">Кино AI</span>
                 </div>
+                <button onClick={() => setOpen(false)} className="text-muted-foreground">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
               <div className="px-3 pb-2.5">
                 <div className="flex bg-secondary rounded-xl p-1">
@@ -316,7 +346,7 @@ export const AiAdvisor = ({
                           : 'text-muted-foreground'
                       }`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: p.dot }} />
+                      <ProviderIcon id={p.id} />
                       {p.label}
                     </button>
                   ))}
