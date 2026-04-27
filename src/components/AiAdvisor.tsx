@@ -34,7 +34,7 @@ interface ChatResponse {
   error?: string;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 const MAX_MOVIES_IN_CONTEXT = 30;
 
 type Provider = 'claude' | 'gpt4o' | 'gemini' | 'deepseek';

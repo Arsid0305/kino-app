@@ -446,7 +446,7 @@ ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр ти�
     });
 
   } catch (error) {
-    console.error("deepseek-chat error:", error);
+    console.error("ai-chat error:", error);
     return jsonResponse(origin, 500, { error: error instanceof Error ? error.message : "Unknown error" });
   }
 });
