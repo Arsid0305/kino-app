@@ -441,7 +441,7 @@ const Index = () => {
                   <MovieCard
                     key={recommendation.id}
                     movie={recommendation}
-                    onRate={setRatingMovie}
+                    onRate={movie => { void handleAddToWatchlist(movie); void getMovie(); }}
                     onSkip={() => { void handleDismissMovie(recommendation); void getMovie(); }}
                   />
                 )}
