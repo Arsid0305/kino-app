@@ -139,6 +139,7 @@ export const AiAdvisor = ({
     const saved = localStorage.getItem('kino-ai-provider');
     return (PROVIDERS.some(p => p.id === saved) ? saved : 'claude') as Provider;
   });
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleSetProvider = (p: Provider) => {
@@ -397,13 +398,19 @@ export const AiAdvisor = ({
                   {message.role === 'assistant' && message.suggestions.length > 0 && (
                     <div className="space-y-3">
                       {message.suggestions
-                        .filter(movie => getSuggestionStatus(movie) === 'new')
+                        .filter(movie => !dismissedSuggestions.has(getMovieDedupKey(movie)))
                         .map(movie => (
                           <MovieCard
                             key={getMovieDedupKey(movie)}
                             movie={movie}
-                            onRate={m => { onAddToWatchlist(m); }}
-                            onSkip={() => { onDismissMovie(movie); }}
+                            onRate={m => {
+                              onAddToWatchlist(m);
+                              setDismissedSuggestions(prev => new Set([...prev, getMovieDedupKey(m)]));
+                            }}
+                            onSkip={() => {
+                              onDismissMovie(movie);
+                              setDismissedSuggestions(prev => new Set([...prev, getMovieDedupKey(movie)]));
+                            }}
                           />
                         ))}
                     </div>
