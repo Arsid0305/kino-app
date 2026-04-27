@@ -447,27 +447,28 @@ const Index = () => {
                 )}
               </AnimatePresence>
 
-              <div className="text-xs text-muted-foreground text-center space-y-0.5">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setMovieListSheet('watchlist')}
-                  className="block w-full hover:text-primary transition-colors underline underline-offset-2"
+                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
                 >
-                  Буду смотреть: {customMovies.length}
+                  <span className="text-lg font-display text-primary">{customMovies.length}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Буду смотреть</span>
                 </button>
                 <button
                   onClick={() => setTab('history')}
-                  className="block w-full hover:text-primary transition-colors underline underline-offset-2"
+                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
                 >
-                  Просмотрено и оценено: {watched.length}
+                  <span className="text-lg font-display text-primary">{watched.length}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Просмотрено</span>
                 </button>
                 <button
                   onClick={() => setMovieListSheet('dismissed')}
-                  className="block w-full hover:text-foreground transition-colors underline underline-offset-2"
+                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
                 >
-                  Исключено из подборов: {dismissedMovies.length}
+                  <span className="text-lg font-display text-muted-foreground">{dismissedMovies.length}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Исключено</span>
                 </button>
-                {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
-                {!session && <p>Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.</p>}
               </div>
 
               <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
