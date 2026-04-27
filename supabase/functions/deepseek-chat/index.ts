@@ -10,10 +10,10 @@ const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
-const DEFAULT_PERPLEXITY_MODEL = "sonar";
+const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
 
-type Provider = "deepseek" | "gpt4o" | "perplexity" | "claude";
+type Provider = "deepseek" | "gpt4o" | "gemini" | "claude";
 
 async function callOpenAICompat(
   apiKey: string,
@@ -62,6 +62,38 @@ async function callClaude(
   return d.content?.[0]?.text?.trim() ?? "";
 }
 
+async function callGemini(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  messages: ChatMessage[],
+): Promise<string> {
+  // Convert chat messages to Gemini format (role "assistant" → "model")
+  const contents = messages.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: 1024, temperature: 1.0 },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const d = await res.json() as {
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
+  };
+  return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+}
+
 async function callProvider(
   provider: Provider,
   systemPrompt: string,
@@ -80,11 +112,11 @@ async function callProvider(
       const model = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
       return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages);
     }
-    case "perplexity": {
-      const key = Deno.env.get("PERPLEXITY_API_KEY");
-      if (!key) throw new Error("PERPLEXITY_API_KEY не настроен");
-      const model = Deno.env.get("PERPLEXITY_MODEL") ?? DEFAULT_PERPLEXITY_MODEL;
-      return callOpenAICompat(key, "https://api.perplexity.ai", model, systemPrompt, messages);
+    case "gemini": {
+      const key = Deno.env.get("GOOGLE_API_KEY");
+      if (!key) throw new Error("GOOGLE_API_KEY не настроен");
+      const model = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_GEMINI_MODEL;
+      return callGemini(key, model, systemPrompt, messages);
     }
     default: {
       const key = Deno.env.get("DEEPSEEK_API_KEY");
@@ -278,9 +310,9 @@ serve(async req => {
       return jsonResponse(origin, 400, { error: "Диалог слишком длинный для одного запроса" });
     }
 
-    const provider: Provider = (["claude", "gpt4o", "perplexity", "deepseek"] as const).includes(body.provider as Provider)
+    const provider: Provider = (["claude", "gpt4o", "gemini", "deepseek"] as const).includes(body.provider as Provider)
       ? (body.provider as Provider)
-      : "deepseek";
+      : "claude";
 
     const filters = Array.isArray(body.filters) ? body.filters.map(String).slice(0, 12) : [];
     const tasteProfile = typeof body.tasteProfile === "string" ? body.tasteProfile.slice(0, 6000) : "";
@@ -316,8 +348,8 @@ serve(async req => {
     if (searchQuery === lastUserMsg) {
       searchQuery = `${lastUserMsg} movie film series`;
     }
-    // Perplexity has built-in web search — no need for Tavily
-    const searchContext = provider === "perplexity" ? "" : await tavilySearch(searchQuery);
+    // Gemini has built-in Google Search — no need for Tavily
+    const searchContext = provider === "gemini" ? "" : await tavilySearch(searchQuery);
 
     const now = new Date();
     const currentDate = now.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });

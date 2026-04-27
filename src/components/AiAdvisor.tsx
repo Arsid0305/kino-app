@@ -37,13 +37,13 @@ interface ChatResponse {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
 const MAX_MOVIES_IN_CONTEXT = 30;
 
-type Provider = 'claude' | 'gpt4o' | 'perplexity' | 'deepseek';
+type Provider = 'claude' | 'gpt4o' | 'gemini' | 'deepseek';
 
 const PROVIDERS: { id: Provider; label: string; dot: string }[] = [
-  { id: 'claude',     label: 'Claude', dot: '#E8784D' },
-  { id: 'gpt4o',      label: 'GPT',    dot: '#10A37F' },
-  { id: 'perplexity', label: 'Pplx',   dot: '#20B2AA' },
-  { id: 'deepseek',   label: 'DS',     dot: '#4D6AFF' },
+  { id: 'claude',    label: 'Claude',  dot: '#E8784D' },
+  { id: 'gpt4o',     label: 'GPT',     dot: '#10A37F' },
+  { id: 'gemini',    label: 'Gemini',  dot: '#4285F4' },
+  { id: 'deepseek',  label: 'DS',      dot: '#4D6AFF' },
 ];
 
 async function getAccessToken(): Promise<string> {
@@ -104,7 +104,7 @@ export const AiAdvisor = ({
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [provider, setProvider] = useState<Provider>(() => {
     const saved = localStorage.getItem('kino-ai-provider');
-    return (PROVIDERS.some(p => p.id === saved) ? saved : 'deepseek') as Provider;
+    return (PROVIDERS.some(p => p.id === saved) ? saved : 'claude') as Provider;
   });
   const scrollRef = useRef<HTMLDivElement>(null);
 
