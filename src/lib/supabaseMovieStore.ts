@@ -146,6 +146,26 @@ export async function upsertWatchlistMovie(movie: Movie) {
   await removeFromCloudLists(movieKey, ['dismissed']);
 }
 
+export async function batchUpsertImport(watched: WatchedMovie[], watchlist: Movie[]) {
+  if (watched.length === 0 && watchlist.length === 0) return;
+
+  const userId = await getCurrentUserId();
+  const allRows = [
+    ...watched.map(m => ({ ...toRow(m, 'watched'), user_id: userId })),
+    ...watchlist.map(m => ({ ...toRow(m, 'watchlist'), user_id: userId })),
+  ];
+
+  // Supabase upsert in chunks of 200 to stay within request size limits
+  const CHUNK = 200;
+  for (let i = 0; i < allRows.length; i += CHUNK) {
+    const chunk = allRows.slice(i, i + CHUNK);
+    const { error } = await supabase
+      .from('user_movies')
+      .upsert(chunk, { onConflict: 'user_id,movie_key,list_type' });
+    if (error) throw error;
+  }
+}
+
 export async function upsertWatchlistMovies(movies: Movie[]) {
   if (movies.length === 0) return;
 

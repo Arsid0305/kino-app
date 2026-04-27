@@ -34,7 +34,7 @@ import {
   upsertDismissedMovie,
   upsertWatchedMovie,
   upsertWatchlistMovie,
-  upsertWatchlistMovies,
+  batchUpsertImport,
 } from '@/lib/supabaseMovieStore';
 import { requestGlobalRecommendation } from '@/lib/globalRecommendation';
 
@@ -212,10 +212,7 @@ const Index = () => {
 
     if (session) {
       try {
-        await Promise.all([
-          result.watched.length > 0 ? Promise.all(result.watched.map(movie => upsertWatchedMovie(movie))) : Promise.resolve(),
-          result.toWatch.length > 0 ? upsertWatchlistMovies(result.toWatch) : Promise.resolve(),
-        ]);
+        await batchUpsertImport(result.watched, result.toWatch);
         setSyncStatus('Импорт синхронизирован с Supabase');
       } catch (error) {
         console.error(error);
