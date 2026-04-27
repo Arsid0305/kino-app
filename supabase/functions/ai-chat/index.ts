@@ -10,7 +10,7 @@ const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-1.5-flash";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
 
 type Provider = "deepseek" | "gpt4o" | "gemini" | "claude";
@@ -430,10 +430,15 @@ ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр ти�
     }
 
     const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    // Some models add introductory text before the JSON — extract the object directly
+    const jsonStr = (() => {
+      const m = clean.match(/\{[\s\S]*\}/);
+      return m ? m[0] : clean;
+    })();
 
     let parsed: { reply?: string; suggestions?: unknown[] };
     try {
-      parsed = JSON.parse(clean);
+      parsed = JSON.parse(jsonStr);
     } catch {
       return jsonResponse(origin, 200, {
         message: raw,

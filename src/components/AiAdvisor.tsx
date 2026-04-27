@@ -318,6 +318,10 @@ export const AiAdvisor = ({
             <div className="border-b border-border bg-secondary/50">
               <div className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="font-display text-lg text-foreground">Кино AI</span>
+                </div>
+                <div className="flex items-center gap-3">
                   {messages.length > 0 && (
                     <button
                       onClick={() => void clearChat()}
@@ -327,12 +331,10 @@ export const AiAdvisor = ({
                       <Trash2 className="w-4 h-4" />
                     </button>
                   )}
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <span className="font-display text-lg text-foreground">Кино AI</span>
+                  <button onClick={() => setOpen(false)} className="text-muted-foreground">
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <button onClick={() => setOpen(false)} className="text-muted-foreground">
-                  <X className="w-5 h-5" />
-                </button>
               </div>
               <div className="px-3 pb-2.5">
                 <div className="flex bg-secondary rounded-xl p-1">
