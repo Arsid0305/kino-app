@@ -33,12 +33,31 @@ async function callOpenAICompat(
       model,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       ...tokenParam,
-      temperature: 1.0,
+      temperature: 0.7,
+      response_format: { type: "json_object" },
     }),
   });
   if (!res.ok) throw new Error(`${baseUrl} ${res.status}: ${await res.text()}`);
   const d = await res.json() as { choices?: { message?: { content?: string } }[] };
   return d.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+// Normalize messages for Claude: ensure alternating user/assistant roles
+// starting with "user". Consecutive same-role messages are merged.
+function normalizeForClaude(messages: ChatMessage[]): ChatMessage[] {
+  const filtered = messages.filter(m => m.content.trim().length > 0);
+  const startIdx = filtered.findIndex(m => m.role === "user");
+  if (startIdx === -1) return [];
+  const normalized: ChatMessage[] = [];
+  for (const msg of filtered.slice(startIdx)) {
+    const last = normalized[normalized.length - 1];
+    if (last && last.role === msg.role) {
+      normalized[normalized.length - 1] = { role: last.role, content: last.content + "\n\n" + msg.content };
+    } else {
+      normalized.push({ role: msg.role, content: msg.content });
+    }
+  }
+  return normalized;
 }
 
 async function callClaude(
@@ -58,7 +77,7 @@ async function callClaude(
       model,
       max_tokens: 3000,
       system: systemPrompt,
-      messages,
+      messages: normalizeForClaude(messages),
     }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
@@ -72,11 +91,17 @@ async function callGemini(
   systemPrompt: string,
   messages: ChatMessage[],
 ): Promise<string> {
-  // Convert chat messages to Gemini format (role "assistant" → "model")
-  const contents = messages.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  // Gemini requires strictly alternating user/model roles — merge consecutive same-role messages
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  for (const m of messages) {
+    const role = m.role === "assistant" ? "model" : "user";
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts[0].text += "\n" + m.content;
+    } else {
+      contents.push({ role, parts: [{ text: m.content }] });
+    }
+  }
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -86,8 +111,12 @@ async function callGemini(
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
-        tools: [{ google_search: {} }],
-        generationConfig: { maxOutputTokens: 1024, temperature: 1.0 },
+        // google_search tools are incompatible with responseMimeType: json — use Tavily instead
+        generationConfig: {
+          maxOutputTokens: 4096,
+          temperature: 0.7,
+          responseMimeType: "application/json",
+        },
       }),
     },
   );
@@ -352,8 +381,7 @@ serve(async req => {
     if (searchQuery === lastUserMsg) {
       searchQuery = `${lastUserMsg} movie film series`;
     }
-    // Gemini has built-in Google Search — no need for Tavily
-    const searchContext = provider === "gemini" ? "" : await tavilySearch(searchQuery);
+    const searchContext = await tavilySearch(searchQuery);
 
     const now = new Date();
     const currentDate = now.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
@@ -384,9 +412,15 @@ ${searchSection}Контекст пользователя:
 Фильтры (ОБЯЗАТЕЛЬНО соблюдать): ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр типа строго обязателен — рекомендуй ТОЛЬКО указанный тип контента.` : ""}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
-ЗАПРЕЩЕНО рекомендовать (уже просмотрено): ${(watchedMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
-ЗАПРЕЩЕНО рекомендовать (уже в списке «Буду смотреть»): ${(watchlistMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
-КРИТИЧНО: если фильм есть в любом из этих двух списков — его нельзя включать в suggestions НИ ПРИ КАКИХ УСЛОВИЯХ.
+АБСОЛЮТНЫЙ ЗАПРЕТ — эти фильмы нельзя включать в suggestions НИ ПРИ КАКИХ УСЛОВИЯХ:
+${(() => {
+  type M = { titleRu?: string; title?: string };
+  const watched = (watchedMovies as M[]).map(m => m.titleRu ?? m.title ?? "").filter(Boolean);
+  const wl = (watchlistMovies as M[]).map(m => m.titleRu ?? m.title ?? "").filter(Boolean);
+  const all = [...watched, ...wl];
+  return all.length > 0 ? all.map((t, i) => `${i + 1}. ${t}`).join("\n") : "нет";
+})()}
+Проверяй каждый предлагаемый фильм по этому списку перед ответом.
 
 ВАЖНО: Всегда отвечай ТОЛЬКО валидным JSON без markdown, без \`\`\`, в следующем формате:
 {

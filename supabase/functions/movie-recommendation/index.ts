@@ -128,14 +128,20 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    // Cap each forbidden segment to 40 titles to keep the prompt manageable
-    const watchedTitles = titlesOf(watchedMovies.slice(0, 40));
-    const watchlistTitles = titlesOf(watchlistMovies.slice(0, 40));
-    const dismissedTitles = titlesOf(dismissedMovies.slice(0, 40));
+    // Build unified forbidden titles list (numbered for clarity)
+    const forbiddenTitles = [
+      ...watchedMovies.slice(0, 40),
+      ...watchlistMovies.slice(0, 40),
+      ...dismissedMovies.slice(0, 40),
+    ].map(m => (m as MovieCtx).titleRu ?? (m as MovieCtx).title ?? "").filter(Boolean);
 
     const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
-      const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
-        .filter(Boolean).join(", ");
+      const allForbidden = alreadyShown
+        ? [...forbiddenTitles, alreadyShown]
+        : [...forbiddenTitles];
+      const forbiddenBlock = allForbidden.length > 0
+        ? allForbidden.map((t, i) => `${i + 1}. ${t}`).join("\n")
+        : "нет";
 
       const body = JSON.stringify({
         model: DEEPSEEK_MODEL,
@@ -146,9 +152,12 @@ serve(async req => {
           },
           {
             role: "user",
-            content: `Порекомендуй ОДИН фильм или сериал, которого НЕТ в списке ниже.
+            content: `Порекомендуй ОДИН фильм или сериал.
 
-ЗАПРЕЩЁННЫЕ (не предлагать ни при каких условиях): ${forbidden || "нет"}
+АБСОЛЮТНЫЙ ЗАПРЕТ — эти фильмы предлагать НЕЛЬЗЯ ни при каких условиях. Сверяйся с каждым пунктом:
+${forbiddenBlock}
+
+Если задуманный фильм есть в списке выше — выбери другой. Это обязательное условие.
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
