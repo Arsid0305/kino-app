@@ -365,17 +365,7 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-40 glass-surface border-b border-border">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
-              <Clapperboard className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl text-foreground tracking-wide">КИНО</h1>
-              <p className="text-[10px] text-muted-foreground">
-                {session ? 'Глобальный AI-подбор + cloud sync' : 'Локальный режим, войди для cloud sync'}
-              </p>
-            </div>
-          </div>
+          <h1 className="font-display text-xl text-foreground tracking-wide">Глобальный AI подбор</h1>
           <div className="flex bg-secondary rounded-xl p-1">
             <button
               onClick={() => setTab('recommend')}
@@ -425,7 +415,29 @@ const Index = () => {
               <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
 
-              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => void getMovie()}
+                disabled={loadingRecommendation}
+                className={`w-full py-4 rounded-2xl font-display text-xl tracking-wider transition-all ${
+                  hasFilters || session
+                    ? 'bg-primary text-primary-foreground cinema-glow'
+                    : 'bg-secondary text-muted-foreground'
+                } disabled:opacity-60`}
+              >
+                {loadingRecommendation ? 'ИЩУ ФИЛЬМ...' : 'ПОДОБРАТЬ ФИЛЬМ'}
+              </motion.button>
+
+              <AnimatePresence mode="wait">
+                {recommendation && (
+                  <MovieCard
+                    key={recommendation.id}
+                    movie={recommendation}
+                    onRate={setRatingMovie}
+                    onSkip={() => { void handleDismissMovie(recommendation); void getMovie(); }}
+                  />
+                )}
+              </AnimatePresence>
 
               <div className="text-xs text-muted-foreground text-center space-y-0.5">
                 <button
@@ -450,33 +462,7 @@ const Index = () => {
                 {!session && <p>Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.</p>}
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => void getMovie()}
-                disabled={loadingRecommendation}
-                className={`w-full py-4 rounded-2xl font-display text-xl tracking-wider transition-all ${
-                  hasFilters || session
-                    ? 'bg-primary text-primary-foreground cinema-glow'
-                    : 'bg-secondary text-muted-foreground'
-                } disabled:opacity-60`}
-              >
-                {loadingRecommendation
-                  ? 'ИЩУ ФИЛЬМ...'
-                  : session
-                  ? 'ПОДОБРАТЬ ФИЛЬМ'
-                  : 'ПОДОБРАТЬ ФИЛЬМ'}
-              </motion.button>
-
-              <AnimatePresence mode="wait">
-                {recommendation && (
-                  <MovieCard
-                    key={recommendation.id}
-                    movie={recommendation}
-                    onRate={setRatingMovie}
-                    onSkip={() => { void handleDismissMovie(recommendation); void getMovie(); }}
-                  />
-                )}
-              </AnimatePresence>
+              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
             </motion.div>
           ) : (
             <motion.div
