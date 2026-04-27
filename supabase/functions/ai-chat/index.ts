@@ -58,12 +58,15 @@ async function callClaude(
       model,
       max_tokens: 1024,
       system: systemPrompt,
-      messages,
+      // Prefill assistant turn with "{" so Claude returns pure JSON without preamble
+      messages: [...messages, { role: "assistant", content: "{" }],
     }),
   });
   if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
   const d = await res.json() as { content?: { type: string; text: string }[] };
-  return d.content?.[0]?.text?.trim() ?? "";
+  const text = d.content?.[0]?.text?.trim() ?? "";
+  // Claude continues from "{" — prepend it back
+  return "{" + text;
 }
 
 async function callGemini(
