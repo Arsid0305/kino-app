@@ -128,56 +128,42 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    const prompt = `Ты — персональный кинокритик и рекомендательная система. Подбери ОДИН фильм или сериал для просмотра прямо сейчас.
+    const prompt = `Ты — персональный кинокритик. Подбери РОВНО 3 фильма или сериала для просмотра — каждый разного жанра и настроения.
 
-Важно:
-- Ищи по всему пространству фильмов и сериалов, доступных на Кинопоиске.
-- Опирайся на вкусовой профиль, ранее просмотренные фильмы, оценки, режиссёров, актеров, жанры, динамику, сложность, настроение и контекст.
-- Не предлагай фильм из просмотренного списка.
-- Никогда не предлагай фильмы из списка dismissed.
-- Можешь предложить фильм из watchlist, только если он лучший match.
+Правила:
+- Все 3 должны быть разных жанров и разного настроения — не повторяй жанры между вариантами
+- Не предлагай фильмы из просмотренного списка
+- Не предлагай фильмы из watchlist — они уже в списке
+- Не предлагай фильмы из dismissed
+- Опирайся на вкусовой профиль и фильтры
 
-Текущие фильтры:
-${filters.length > 0 ? filters.join("\n") : "без жестких ограничений"}
+Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
+Вкусовой профиль: ${tasteProfile || "пуст"}
+Просмотренное: ${JSON.stringify(watchedMovies)}
+Watchlist: ${JSON.stringify(watchlistMovies)}
+Dismissed: ${JSON.stringify(dismissedMovies)}
 
-Вкусовой профиль:
-${tasteProfile || "профиль пока пуст"}
-
-Просмотренное:
-${JSON.stringify(watchedMovies)}
-
-Watchlist:
-${JSON.stringify(watchlistMovies)}
-
-Dismissed:
-${JSON.stringify(dismissedMovies)}
-
-Дополнительные правила для поля reasonToWatch:
-- используй только русские слова
-- вместо "watchlist" пиши "Буду смотреть"
-- вместо "dismissed" пиши "Отклонённые"
-- вместо "match" пиши "Подходящие"
-
-Верни ТОЛЬКО валидный JSON без markdown, без пояснений, без \`\`\`:
-{
-  "title": "original title",
-  "titleRu": "русское название",
-  "year": 2021,
-  "type": "film",
-  "genres": ["драма", "триллер"],
-  "duration": 120,
-  "director": "Director Name",
-  "description": "краткий синопсис 2-3 предложения",
-  "reasonToWatch": "почему это точное попадание по вкусу пользователя именно сейчас",
-  "mood": ["thoughtful"],
-  "timeOfDay": ["evening"],
-  "format": "medium",
-  "forCompany": "any",
-  "kpRating": 7.8,
-  "country": "США",
-  "predictedRating": 8.6,
-  "kpQuery": "название для поиска на Кинопоиске"
-}`;
+Верни ТОЛЬКО валидный JSON без markdown, без \`\`\`:
+[
+  {
+    "title": "original title",
+    "titleRu": "русское название",
+    "year": 2021,
+    "type": "film",
+    "genres": ["драма"],
+    "duration": 120,
+    "director": "Director Name",
+    "description": "краткий синопсис 2-3 предложения",
+    "reasonToWatch": "почему подходит пользователю",
+    "mood": ["задумчивое"],
+    "timeOfDay": ["evening"],
+    "format": "medium",
+    "forCompany": "any",
+    "kpRating": 7.8,
+    "country": "США",
+    "predictedRating": 8.6
+  }
+]``;
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
       method: "POST",
@@ -212,18 +198,18 @@ ${JSON.stringify(dismissedMovies)}
       return jsonResponse(origin, 500, { error: "DeepSeek вернул пустой ответ" });
     }
 
-    // Убираем markdown-обёртку если есть
     const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
-    let recommendation;
+    let parsed;
     try {
-      recommendation = JSON.parse(clean);
+      parsed = JSON.parse(clean);
     } catch {
       console.error("Failed to parse DeepSeek response:", clean);
       return jsonResponse(origin, 500, { error: "Не удалось разобрать ответ модели" });
     }
 
-    return jsonResponse(origin, 200, { recommendation });
+    const recommendations = Array.isArray(parsed) ? parsed : [parsed];
+    return jsonResponse(origin, 200, { recommendations });
   } catch (error) {
     console.error("movie-recommendation error:", error);
     return jsonResponse(origin, 500, { error: error instanceof Error ? error.message : "Unknown error" });

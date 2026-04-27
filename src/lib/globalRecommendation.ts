@@ -7,7 +7,7 @@ const RECOMMENDATION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mo
 function normalizeRecommendation(raw: Record<string, unknown>): Movie {
   const duration = Number(raw.duration ?? 110);
   const format = raw.format === 'short' || raw.format === 'long' ? raw.format : 'medium';
-  const type = raw.type === 'series' ? 'series' : 'film';
+  const type = raw.type === 'series' ? 'series' : raw.type === 'miniseries' ? 'miniseries' : 'film';
   const forCompany = raw.forCompany === 'solo' || raw.forCompany === 'pair' || raw.forCompany === 'group'
     ? raw.forCompany
     : 'any';
@@ -71,5 +71,8 @@ export async function requestGlobalRecommendation(
   }
 
   const payload = await response.json();
-  return normalizeRecommendation(payload.recommendation as Record<string, unknown>);
+  const recs = Array.isArray(payload.recommendations)
+    ? payload.recommendations
+    : [payload.recommendation ?? payload.recommendations];
+  return recs.map((r: Record<string, unknown>) => normalizeRecommendation(r));
 }
