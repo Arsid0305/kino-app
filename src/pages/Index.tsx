@@ -480,7 +480,7 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <WatchHistory watched={watched} />
+              <WatchHistory watched={watched} onReRate={movie => setRatingMovie(movie)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -503,6 +503,10 @@ const Index = () => {
         movies={movieListSheet === 'watchlist' ? customMovies : dismissedMovies}
         mode={movieListSheet ?? 'watchlist'}
         onRate={movie => setRatingMovie(movie)}
+        onRestore={movie => {
+          const key = getMovieDedupKey(movie);
+          setDismissedMovies(prev => prev.filter(m => getMovieDedupKey(m) !== key));
+        }}
       />
 
       <AnimatePresence>

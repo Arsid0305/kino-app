@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookmarkCheck, Star, XCircle } from 'lucide-react';
+import { BookmarkCheck, Star, XCircle, Undo2 } from 'lucide-react';
 import { Movie } from '@/lib/movieTypes';
 import {
   Sheet,
@@ -14,9 +14,10 @@ interface MovieListSheetProps {
   movies: Movie[];
   mode: 'watchlist' | 'dismissed';
   onRate?: (movie: Movie) => void;
+  onRestore?: (movie: Movie) => void;
 }
 
-export const MovieListSheet = ({ open, onClose, movies, mode, onRate }: MovieListSheetProps) => {
+export const MovieListSheet = ({ open, onClose, movies, mode, onRate, onRestore }: MovieListSheetProps) => {
   const title = mode === 'watchlist' ? 'Буду смотреть' : 'Отказалась';
   const Icon = mode === 'watchlist' ? BookmarkCheck : XCircle;
   const iconClass = mode === 'watchlist' ? 'text-primary' : 'text-muted-foreground';
@@ -60,6 +61,16 @@ export const MovieListSheet = ({ open, onClose, movies, mode, onRate }: MovieLis
                   >
                     <Star className="w-3.5 h-3.5 fill-primary" />
                     <span className="text-xs font-medium">Оценить</span>
+                  </motion.button>
+                )}
+                {mode === 'dismissed' && onRestore && (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => onRestore(movie)}
+                    className="shrink-0 flex items-center gap-1 bg-secondary hover:bg-secondary/80 text-foreground rounded-lg px-2 py-1.5 transition-colors"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">Вернуть</span>
                   </motion.button>
                 )}
               </motion.div>
