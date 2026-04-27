@@ -263,8 +263,8 @@ ${searchSection}Контекст пользователя:
 Фильтры (ОБЯЗАТЕЛЬНО соблюдать): ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр типа строго обязателен — рекомендуй ТОЛЬКО указанный тип контента.` : ""}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
-Просмотренное: ${JSON.stringify(watchedMovies)}
-Список к просмотру: ${JSON.stringify(watchlistMovies)}
+Просмотренные (не рекомендовать): ${(watchedMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
+Список «Буду смотреть» (НЕЛЬЗЯ рекомендовать — уже в списке): ${(watchlistMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
 
 ВАЖНО: Всегда отвечай ТОЛЬКО валидным JSON без markdown, без \`\`\`, в следующем формате:
 {

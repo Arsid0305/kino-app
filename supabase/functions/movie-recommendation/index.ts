@@ -30,7 +30,6 @@ function getCorsHeaders(origin: string | null) {
     : origin && allowedOrigins.includes(origin)
     ? origin
     : allowedOrigins[0];
-
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers": DEFAULT_ALLOWED_HEADERS,
@@ -53,12 +52,10 @@ function getClientIp(req: Request): string {
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
   const limit = rateLimits.get(key);
-
   if (!limit || now > limit.resetAt) {
     rateLimits.set(key, { count: 1, resetAt: now + 60_000 });
     return true;
   }
-
   if (limit.count >= MAX_REQUESTS_PER_MINUTE) return false;
   limit.count++;
   return true;
@@ -66,6 +63,12 @@ function checkRateLimit(key: string): boolean {
 
 function isMovieContext(value: unknown): boolean {
   return Boolean(value) && typeof value === "object";
+}
+
+type MovieCtx = { titleRu?: string; title?: string };
+
+function titlesOf(arr: unknown[]): string {
+  return (arr as MovieCtx[]).map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
 }
 
 serve(async req => {
@@ -115,94 +118,84 @@ serve(async req => {
     const filters = Array.isArray(body.filters) ? body.filters.map(String).slice(0, 12) : [];
     const tasteProfile = typeof body.tasteProfile === "string" ? body.tasteProfile.slice(0, 6000) : "";
     const watchedMovies = Array.isArray(body.watchedMovies)
-      ? body.watchedMovies.filter(isMovieContext).slice(0, MAX_MOVIES)
-      : [];
+      ? body.watchedMovies.filter(isMovieContext).slice(0, MAX_MOVIES) : [];
     const watchlistMovies = Array.isArray(body.watchlistMovies)
-      ? body.watchlistMovies.filter(isMovieContext).slice(0, MAX_MOVIES)
-      : [];
+      ? body.watchlistMovies.filter(isMovieContext).slice(0, MAX_MOVIES) : [];
     const dismissedMovies = Array.isArray(body.dismissedMovies)
-      ? body.dismissedMovies.filter(isMovieContext).slice(0, MAX_MOVIES)
-      : [];
+      ? body.dismissedMovies.filter(isMovieContext).slice(0, MAX_MOVIES) : [];
 
     const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    const watchlistTitles = (watchlistMovies as {titleRu?: string; title?: string}[])
-      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
-    const watchedTitles = (watchedMovies as {titleRu?: string; title?: string}[])
-      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
-    const dismissedTitles = (dismissedMovies as {titleRu?: string; title?: string}[])
-      .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
+    const watchedTitles = titlesOf(watchedMovies);
+    const watchlistTitles = titlesOf(watchlistMovies);
+    const dismissedTitles = titlesOf(dismissedMovies);
 
-    const systemMsg = `Ты — кинорекомендательная система. Ты ВСЕГДА возвращаешь РОВНО 3 рекомендации в виде JSON-массива из 3 объектов. Никогда не возвращай меньше 3. Никогда не возвращай markdown или пояснения — только JSON.`;
+    const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
+      const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
+        .filter(Boolean).join(", ");
 
-    const userMsg = `Подбери 3 фильма или сериала — каждый РАЗНОГО жанра и настроения.
+      const res = await fetch("https://api.deepseek.com/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages: [
+            {
+              role: "system",
+              content: "Ты — кинорекомендательная система. Возвращаешь ТОЛЬКО валидный JSON-объект без markdown и пояснений.",
+            },
+            {
+              role: "user",
+              content: `Порекомендуй ОДИН фильм или сериал.
 
-НЕЛЬЗЯ предлагать (эти фильмы уже известны пользователю):
-Просмотренные: ${watchedTitles || "нет"}
-Список «Буду смотреть»: ${watchlistTitles || "нет"}
-Отклонённые: ${dismissedTitles || "нет"}
+НЕЛЬЗЯ предлагать эти фильмы (они уже известны пользователю): ${forbidden || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
 
-Верни JSON-массив РОВНО из 3 объектов:
-[
-  {"title":"...", "titleRu":"...", "year":2020, "type":"film", "genres":["жанр1"], "duration":100, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение"], "timeOfDay":["evening"], "format":"medium", "forCompany":"any", "kpRating":7.5, "country":"...", "predictedRating":8.0},
-  {"title":"...", "titleRu":"...", "year":2019, "type":"series", "genres":["жанр2"], "duration":45, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение2"], "timeOfDay":["night"], "format":"short", "forCompany":"solo", "kpRating":8.0, "country":"...", "predictedRating":8.5},
-  {"title":"...", "titleRu":"...", "year":2022, "type":"film", "genres":["жанр3"], "duration":130, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение3"], "timeOfDay":["evening"], "format":"long", "forCompany":"pair", "kpRating":7.0, "country":"...", "predictedRating":7.8}
-]`;
+Верни ТОЛЬКО JSON-объект (без массива, без пояснений):
+{"title":"Название","titleRu":"Русское название","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"Режиссёр","description":"Синопсис 2-3 предложения","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0}`,
+            },
+          ],
+          stream: false,
+          max_tokens: 800,
+          temperature: 1.2,
+        }),
+      });
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: userMsg },
-        ],
-        stream: false,
-        max_tokens: 2500,
-        temperature: 1.1,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("DeepSeek recommendation error:", response.status, errorText);
-      if (response.status === 429) {
-        return jsonResponse(origin, 429, { error: "Слишком много запросов, попробуйте позже." });
-      }
-      return jsonResponse(origin, 500, { error: "Ошибка DeepSeek recommendation API" });
-    }
-
-    const data = await response.json() as {
-      choices?: { message?: { content?: string } }[];
+      if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
+      const d = await res.json() as { choices?: { message?: { content?: string } }[] };
+      const raw = d.choices?.[0]?.message?.content?.trim() ?? "";
+      const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      const parsed = JSON.parse(clean);
+      // If DeepSeek returned an array anyway, take the first element
+      return Array.isArray(parsed) ? parsed[0] : parsed;
     };
 
-    const raw = data.choices?.[0]?.message?.content?.trim();
-
-    if (!raw) {
-      return jsonResponse(origin, 500, { error: "DeepSeek вернул пустой ответ" });
+    // Make 3 sequential calls — each knows what was already picked to avoid duplicates
+    const picked: Record<string, unknown>[] = [];
+    for (let i = 0; i < 3; i++) {
+      try {
+        const alreadyShown = picked.map(m => (m.titleRu ?? m.title ?? "") as string).join(", ");
+        const movie = await callOnce(alreadyShown);
+        picked.push(movie);
+        console.log(`Recommendation ${i + 1}: ${movie.titleRu ?? movie.title}`);
+      } catch (e) {
+        console.error(`DeepSeek call ${i + 1} failed:`, e);
+      }
     }
 
-    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch {
-      console.error("Failed to parse DeepSeek response:", clean);
-      return jsonResponse(origin, 500, { error: "Не удалось разобрать ответ модели" });
+    if (picked.length === 0) {
+      return jsonResponse(origin, 500, { error: "Не удалось получить рекомендации" });
     }
 
-    const recommendations = Array.isArray(parsed) ? parsed : [parsed];
-    return jsonResponse(origin, 200, { recommendations });
+    return jsonResponse(origin, 200, { recommendations: picked });
+
   } catch (error) {
     console.error("movie-recommendation error:", error);
     return jsonResponse(origin, 500, { error: error instanceof Error ? error.message : "Unknown error" });
