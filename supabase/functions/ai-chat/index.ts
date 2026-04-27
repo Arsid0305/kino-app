@@ -384,8 +384,9 @@ ${searchSection}Контекст пользователя:
 Фильтры (ОБЯЗАТЕЛЬНО соблюдать): ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр типа строго обязателен — рекомендуй ТОЛЬКО указанный тип контента.` : ""}
 Вкусовой профиль: ${tasteProfile || "еще формируется"}
-Просмотренные (не рекомендовать): ${(watchedMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
-Список «Буду смотреть» (НЕЛЬЗЯ рекомендовать — уже в списке): ${(watchlistMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
+ЗАПРЕЩЕНО рекомендовать (уже просмотрено): ${(watchedMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
+ЗАПРЕЩЕНО рекомендовать (уже в списке «Буду смотреть»): ${(watchlistMovies as {titleRu?:string;title?:string}[]).map(m=>m.titleRu??m.title??"").filter(Boolean).join(", ") || "нет"}
+КРИТИЧНО: если фильм есть в любом из этих двух списков — его нельзя включать в suggestions НИ ПРИ КАКИХ УСЛОВИЯХ.
 
 ВАЖНО: Всегда отвечай ТОЛЬКО валидным JSON без markdown, без \`\`\`, в следующем формате:
 {

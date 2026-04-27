@@ -396,14 +396,16 @@ export const AiAdvisor = ({
 
                   {message.role === 'assistant' && message.suggestions.length > 0 && (
                     <div className="space-y-3">
-                      {message.suggestions.map(movie => (
-                        <MovieCard
-                          key={getMovieDedupKey(movie)}
-                          movie={movie}
-                          onRate={m => { onAddToWatchlist(m); }}
-                          onSkip={() => { onDismissMovie(movie); }}
-                        />
-                      ))}
+                      {message.suggestions
+                        .filter(movie => getSuggestionStatus(movie) === 'new')
+                        .map(movie => (
+                          <MovieCard
+                            key={getMovieDedupKey(movie)}
+                            movie={movie}
+                            onRate={m => { onAddToWatchlist(m); }}
+                            onSkip={() => { onDismissMovie(movie); }}
+                          />
+                        ))}
                     </div>
                   )}
                 </div>
