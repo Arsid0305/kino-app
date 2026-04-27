@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, BookmarkPlus, Check, EyeOff, Loader2, Send, Sparkles, Trash2, X } from 'lucide-react';
+import { Bot, Loader2, Send, Sparkles, Trash2, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,6 +8,7 @@ import { FilterState, Movie, WatchedMovie } from '@/lib/movieTypes';
 import { buildFilterSummary, buildTasteProfileSummary, toMovieContext } from '@/lib/tasteProfile';
 import { loadChatMessages, saveChatMessage, StoredChatMessage } from '@/lib/chatStore';
 import { getMovieDedupKey } from '@/lib/movieIdentity';
+import { MovieCard } from '@/components/MovieCard';
 
 type AdvisorMessage = {
   id: string;
@@ -394,74 +395,15 @@ export const AiAdvisor = ({
                   </div>
 
                   {message.role === 'assistant' && message.suggestions.length > 0 && (
-                    <div className="space-y-2">
-                      {message.suggestions.map(movie => {
-                        const status = getSuggestionStatus(movie);
-
-                        return (
-                          <div key={getMovieDedupKey(movie)} className="rounded-2xl border border-border bg-secondary/40 p-3 space-y-3">
-                            <div className="space-y-1">
-                              <div className="flex items-start justify-between gap-3">
-                                <div>
-                                  <p className="font-semibold text-sm text-foreground">{movie.titleRu}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {movie.year > 0 ? `${movie.year} • ` : ''}
-                                    {movie.type === 'series' ? 'Сериал' : 'Фильм'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {movie.reasonToWatch && (
-                                <p className="text-xs text-foreground/90">{movie.reasonToWatch}</p>
-                              )}
-
-                              {movie.description && (
-                                <p className="text-xs text-muted-foreground line-clamp-3">{movie.description}</p>
-                              )}
-                            </div>
-
-                            <div className="grid grid-cols-3 gap-1.5">
-                              <button
-                                onClick={() => onAddToWatchlist(movie)}
-                                disabled={status === 'watchlist'}
-                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
-                                  status === 'watchlist'
-                                    ? 'border-primary/30 bg-primary/15 text-primary'
-                                    : 'border-border bg-background text-foreground'
-                                }`}
-                              >
-                                <BookmarkPlus className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Буду смотреть</span>
-                              </button>
-
-                              <button
-                                onClick={() => onRateMovie(movie)}
-                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
-                                  status === 'watched'
-                                    ? 'border-primary bg-primary text-primary-foreground'
-                                    : 'border-border bg-background text-foreground'
-                                }`}
-                              >
-                                <Check className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Просмотрено</span>
-                              </button>
-
-                              <button
-                                onClick={() => onDismissMovie(movie)}
-                                disabled={status === 'dismissed'}
-                                className={`inline-flex h-9 items-center justify-center gap-1 rounded-xl border px-1.5 text-[11px] leading-none ${
-                                  status === 'dismissed'
-                                    ? 'border-destructive/30 bg-destructive/15 text-destructive'
-                                    : 'border-border bg-background text-muted-foreground'
-                                }`}
-                              >
-                                <EyeOff className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Не буду смотреть</span>
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="space-y-3">
+                      {message.suggestions.map(movie => (
+                        <MovieCard
+                          key={getMovieDedupKey(movie)}
+                          movie={movie}
+                          onRate={m => { onAddToWatchlist(m); }}
+                          onSkip={() => { onDismissMovie(movie); }}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
