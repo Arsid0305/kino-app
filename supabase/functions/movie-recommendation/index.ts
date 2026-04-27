@@ -128,56 +128,71 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    const watchedTitles = titlesOf(watchedMovies);
-    const watchlistTitles = titlesOf(watchlistMovies);
-    const dismissedTitles = titlesOf(dismissedMovies);
+    // Cap each forbidden segment to 40 titles to keep the prompt manageable
+    const watchedTitles = titlesOf(watchedMovies.slice(0, 40));
+    const watchlistTitles = titlesOf(watchlistMovies.slice(0, 40));
+    const dismissedTitles = titlesOf(dismissedMovies.slice(0, 40));
 
     const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
       const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
         .filter(Boolean).join(", ");
 
-      const res = await fetch("https://api.deepseek.com/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: DEEPSEEK_MODEL,
-          messages: [
-            {
-              role: "system",
-              content: "Ты — кинорекомендательная система. Возвращаешь ТОЛЬКО валидный JSON-объект без markdown и пояснений.",
-            },
-            {
-              role: "user",
-              content: `Порекомендуй ОДИН фильм или сериал.
+      const body = JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        messages: [
+          {
+            role: "system",
+            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON-объектом без markdown, без пояснений, без лишнего текста.",
+          },
+          {
+            role: "user",
+            content: `Порекомендуй ОДИН фильм или сериал, которого НЕТ в списке ниже.
 
-НЕЛЬЗЯ предлагать эти фильмы (они уже известны пользователю): ${forbidden || "нет"}
+ЗАПРЕЩЁННЫЕ (не предлагать ни при каких условиях): ${forbidden || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
 
 Верни ТОЛЬКО JSON-объект (без массива, без пояснений):
 {"title":"Название","titleRu":"Русское название","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"Режиссёр","description":"Синопсис 2-3 предложения","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0}`,
-            },
-          ],
-          stream: false,
-          max_tokens: 800,
-          temperature: 1.2,
-        }),
+          },
+        ],
+        stream: false,
+        max_tokens: 800,
+        temperature: 1.0,
       });
 
-      if (!res.ok) throw new Error(`DeepSeek ${res.status}`);
-      const d = await res.json() as { choices?: { message?: { content?: string } }[] };
-      const raw = d.choices?.[0]?.message?.content?.trim() ?? "";
-      const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-      const parsed = JSON.parse(clean);
-      // If DeepSeek returned an array anyway, take the first element
-      return Array.isArray(parsed) ? parsed[0] : parsed;
+      // Retry once on transient failures (JSON parse errors, 5xx)
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body,
+        });
+
+        if (!res.ok) {
+          if (res.status === 429) throw new Error(`DeepSeek 429`);
+          if (attempt === 1) throw new Error(`DeepSeek ${res.status}`);
+          continue;
+        }
+
+        const d = await res.json() as { choices?: { message?: { content?: string } }[] };
+        const raw = d.choices?.[0]?.message?.content?.trim() ?? "";
+        const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        try {
+          const parsed = JSON.parse(clean);
+          return Array.isArray(parsed) ? parsed[0] : parsed;
+        } catch {
+          if (attempt === 1) throw new Error(`JSON parse failed: ${clean.slice(0, 100)}`);
+          // retry
+        }
+      }
+      throw new Error("callOnce exhausted retries");
     };
 
-    // Make 3 sequential calls — each knows what was already picked to avoid duplicates
     const picked: Record<string, unknown>[] = [];
     for (let i = 0; i < 2; i++) {
       try {
