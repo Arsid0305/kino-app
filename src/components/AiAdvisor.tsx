@@ -267,10 +267,7 @@ export const AiAdvisor = ({
             <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/50">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                <span className="font-display text-lg text-foreground">КиноГуру</span>
-                <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
-                  {cloudHistoryEnabled ? 'облако' : 'локально'}
-                </span>
+                <span className="font-display text-lg text-foreground">Кино AI</span>
               </div>
               <div className="flex items-center gap-2">
                 {messages.length > 0 && (
