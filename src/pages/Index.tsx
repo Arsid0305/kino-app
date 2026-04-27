@@ -215,8 +215,9 @@ const Index = () => {
         await batchUpsertImport(result.watched, result.toWatch);
         setSyncStatus('Импорт синхронизирован с Supabase');
       } catch (error) {
-        console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Не удалось синхронизировать импорт');
+        console.error('batchUpsertImport failed:', JSON.stringify(error));
+        const msg = error instanceof Error ? error.message : JSON.stringify(error);
+        toast.error(`Ошибка синхронизации: ${msg}`);
       }
     }
   };
