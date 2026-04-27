@@ -135,36 +135,23 @@ serve(async req => {
     const dismissedTitles = (dismissedMovies as {titleRu?: string; title?: string}[])
       .map(m => m.titleRu ?? m.title ?? "").filter(Boolean).join(", ");
 
-    const prompt = `Ты — персональный кинокритик. Подбери РОВНО 3 фильма или сериала — каждый РАЗНОГО жанра и РАЗНОГО настроения.
+    const systemMsg = `Ты — кинорекомендательная система. Ты ВСЕГДА возвращаешь РОВНО 3 рекомендации в виде JSON-массива из 3 объектов. Никогда не возвращай меньше 3. Никогда не возвращай markdown или пояснения — только JSON.`;
 
-СТРОГО ЗАПРЕЩЕНО предлагать:
-- Уже просмотренные: ${watchedTitles || "нет"}
-- Уже в списке «Буду смотреть»: ${watchlistTitles || "нет"}
-- Отклонённые: ${dismissedTitles || "нет"}
+    const userMsg = `Подбери 3 фильма или сериала — каждый РАЗНОГО жанра и настроения.
+
+НЕЛЬЗЯ предлагать (эти фильмы уже известны пользователю):
+Просмотренные: ${watchedTitles || "нет"}
+Список «Буду смотреть»: ${watchlistTitles || "нет"}
+Отклонённые: ${dismissedTitles || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
 
-Верни ТОЛЬКО валидный JSON-массив из 3 объектов без markdown, без \`\`\`:
+Верни JSON-массив РОВНО из 3 объектов:
 [
-  {
-    "title": "original title",
-    "titleRu": "русское название",
-    "year": 2021,
-    "type": "film",
-    "genres": ["драма"],
-    "duration": 120,
-    "director": "Director Name",
-    "description": "краткий синопсис 2-3 предложения",
-    "reasonToWatch": "почему подходит пользователю",
-    "mood": ["задумчивое"],
-    "timeOfDay": ["evening"],
-    "format": "medium",
-    "forCompany": "any",
-    "kpRating": 7.8,
-    "country": "США",
-    "predictedRating": 8.6
-  }
+  {"title":"...", "titleRu":"...", "year":2020, "type":"film", "genres":["жанр1"], "duration":100, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение"], "timeOfDay":["evening"], "format":"medium", "forCompany":"any", "kpRating":7.5, "country":"...", "predictedRating":8.0},
+  {"title":"...", "titleRu":"...", "year":2019, "type":"series", "genres":["жанр2"], "duration":45, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение2"], "timeOfDay":["night"], "format":"short", "forCompany":"solo", "kpRating":8.0, "country":"...", "predictedRating":8.5},
+  {"title":"...", "titleRu":"...", "year":2022, "type":"film", "genres":["жанр3"], "duration":130, "director":"...", "description":"...", "reasonToWatch":"...", "mood":["настроение3"], "timeOfDay":["evening"], "format":"long", "forCompany":"pair", "kpRating":7.0, "country":"...", "predictedRating":7.8}
 ]`;
 
     const response = await fetch("https://api.deepseek.com/chat/completions", {
@@ -175,7 +162,10 @@ serve(async req => {
       },
       body: JSON.stringify({
         model: DEEPSEEK_MODEL,
-        messages: [{ role: "user", content: prompt }],
+        messages: [
+          { role: "system", content: systemMsg },
+          { role: "user", content: userMsg },
+        ],
         stream: false,
         max_tokens: 2500,
         temperature: 1.1,
