@@ -9,6 +9,91 @@ const MAX_TOTAL_MESSAGE_LENGTH = 12000;
 const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
+const DEFAULT_OPENAI_MODEL = "gpt-4o";
+const DEFAULT_PERPLEXITY_MODEL = "sonar";
+const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
+
+type Provider = "deepseek" | "gpt4o" | "perplexity" | "claude";
+
+async function callOpenAICompat(
+  apiKey: string,
+  baseUrl: string,
+  model: string,
+  systemPrompt: string,
+  messages: ChatMessage[],
+): Promise<string> {
+  const res = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      max_tokens: 1024,
+      temperature: 1.0,
+    }),
+  });
+  if (!res.ok) throw new Error(`${baseUrl} ${res.status}: ${await res.text()}`);
+  const d = await res.json() as { choices?: { message?: { content?: string } }[] };
+  return d.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+async function callClaude(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  messages: ChatMessage[],
+): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages,
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+  const d = await res.json() as { content?: { type: string; text: string }[] };
+  return d.content?.[0]?.text?.trim() ?? "";
+}
+
+async function callProvider(
+  provider: Provider,
+  systemPrompt: string,
+  messages: ChatMessage[],
+): Promise<string> {
+  switch (provider) {
+    case "claude": {
+      const key = Deno.env.get("ANTHROPIC_API_KEY");
+      if (!key) throw new Error("ANTHROPIC_API_KEY не настроен");
+      const model = Deno.env.get("ANTHROPIC_MODEL") ?? DEFAULT_ANTHROPIC_MODEL;
+      return callClaude(key, model, systemPrompt, messages);
+    }
+    case "gpt4o": {
+      const key = Deno.env.get("OPENAI_API_KEY");
+      if (!key) throw new Error("OPENAI_API_KEY не настроен");
+      const model = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
+      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages);
+    }
+    case "perplexity": {
+      const key = Deno.env.get("PERPLEXITY_API_KEY");
+      if (!key) throw new Error("PERPLEXITY_API_KEY не настроен");
+      const model = Deno.env.get("PERPLEXITY_MODEL") ?? DEFAULT_PERPLEXITY_MODEL;
+      return callOpenAICompat(key, "https://api.perplexity.ai", model, systemPrompt, messages);
+    }
+    default: {
+      const key = Deno.env.get("DEEPSEEK_API_KEY");
+      if (!key) throw new Error("DEEPSEEK_API_KEY не настроен");
+      const model = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
+      return callOpenAICompat(key, "https://api.deepseek.com", model, systemPrompt, messages);
+    }
+  }
+}
 
 // Search Tavily for fresh movie data. Returns empty string if key missing or
 // request fails — DeepSeek then falls back to its own training knowledge.
@@ -164,6 +249,7 @@ serve(async req => {
     }
 
     const body = await req.json().catch(() => null) as {
+      provider?: unknown;
       messages?: unknown;
       filters?: unknown;
       tasteProfile?: unknown;
@@ -192,19 +278,17 @@ serve(async req => {
       return jsonResponse(origin, 400, { error: "Диалог слишком длинный для одного запроса" });
     }
 
+    const provider: Provider = (["claude", "gpt4o", "perplexity", "deepseek"] as const).includes(body.provider as Provider)
+      ? (body.provider as Provider)
+      : "deepseek";
+
     const filters = Array.isArray(body.filters) ? body.filters.map(String).slice(0, 12) : [];
     const tasteProfile = typeof body.tasteProfile === "string" ? body.tasteProfile.slice(0, 6000) : "";
     const watchedMovies = Array.isArray(body.watchedMovies) ? body.watchedMovies.slice(0, MAX_MOVIES) : [];
     const watchlistMovies = Array.isArray(body.watchlistMovies) ? body.watchlistMovies.slice(0, MAX_MOVIES) : [];
 
-    const DEEPSEEK_API_KEY = Deno.env.get("DEEPSEEK_API_KEY");
-    if (!DEEPSEEK_API_KEY) {
-      throw new Error("DEEPSEEK_API_KEY is not configured");
-    }
-
-    const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
-
     // Use the last user message as the search query to fetch fresh movie data.
+    // Perplexity has built-in search, so skip Tavily for it.
     const lastUserMsg = safeMessages.filter(m => m.role === "user").at(-1)?.content ?? "";
 
     // Map Russian award/event term roots to English so Tavily finds English-language sources.
@@ -232,7 +316,8 @@ serve(async req => {
     if (searchQuery === lastUserMsg) {
       searchQuery = `${lastUserMsg} movie film series`;
     }
-    const searchContext = await tavilySearch(searchQuery);
+    // Perplexity has built-in web search — no need for Tavily
+    const searchContext = provider === "perplexity" ? "" : await tavilySearch(searchQuery);
 
     const now = new Date();
     const currentDate = now.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
@@ -301,46 +386,13 @@ ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр ти�
 - timeOfDay: массив из "morning", "afternoon", "evening", "night"
 - только русские слова в тексте`;
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...safeMessages,
-        ],
-        stream: false,
-        max_tokens: 1024,
-        temperature: 1.2,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("DeepSeek error:", response.status, errorText);
-
-      if (response.status === 429) {
-        return jsonResponse(origin, 429, { error: "Слишком много запросов, попробуйте позже." });
-      }
-
-      return jsonResponse(origin, 500, { error: "Ошибка DeepSeek API" });
-    }
-
-    const data = await response.json() as {
-      choices?: { message?: { content?: string } }[];
-    };
-
-    const raw = data.choices?.[0]?.message?.content?.trim();
+    console.log(`Using provider: ${provider}`);
+    const raw = await callProvider(provider, systemPrompt, safeMessages);
 
     if (!raw) {
-      return jsonResponse(origin, 500, { error: "DeepSeek вернул пустой ответ" });
+      return jsonResponse(origin, 500, { error: "AI вернул пустой ответ" });
     }
 
-    // Убираем markdown-обёртку если есть
     const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
     let parsed: { reply?: string; suggestions?: unknown[] };

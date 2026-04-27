@@ -37,6 +37,15 @@ interface ChatResponse {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deepseek-chat`;
 const MAX_MOVIES_IN_CONTEXT = 30;
 
+type Provider = 'claude' | 'gpt4o' | 'perplexity' | 'deepseek';
+
+const PROVIDERS: { id: Provider; label: string; dot: string }[] = [
+  { id: 'claude',     label: 'Claude', dot: '#E8784D' },
+  { id: 'gpt4o',      label: 'GPT',    dot: '#10A37F' },
+  { id: 'perplexity', label: 'Pplx',   dot: '#20B2AA' },
+  { id: 'deepseek',   label: 'DS',     dot: '#4D6AFF' },
+];
+
 async function getAccessToken(): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession();
   if (sessionData.session?.access_token) return sessionData.session.access_token;
@@ -93,7 +102,16 @@ export const AiAdvisor = ({
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [provider, setProvider] = useState<Provider>(() => {
+    const saved = localStorage.getItem('kino-ai-provider');
+    return (PROVIDERS.some(p => p.id === saved) ? saved : 'deepseek') as Provider;
+  });
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSetProvider = (p: Provider) => {
+    setProvider(p);
+    localStorage.setItem('kino-ai-provider', p);
+  };
 
   const cloudHistoryEnabled = Boolean(session && !session.user.is_anonymous);
 
@@ -204,6 +222,7 @@ export const AiAdvisor = ({
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
+          provider,
           messages: nextConversation.map(message => ({
             role: message.role,
             content: message.content,
@@ -264,24 +283,44 @@ export const AiAdvisor = ({
             exit={{ opacity: 0, y: 40 }}
             className="fixed inset-x-0 bottom-0 z-50 max-w-md mx-auto h-[78vh] flex flex-col bg-card border border-border rounded-t-2xl shadow-2xl overflow-hidden"
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-secondary/50">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="font-display text-lg text-foreground">Кино AI</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {messages.length > 0 && (
-                  <button
-                    onClick={() => void clearChat()}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    title="Очистить чат"
-                  >
-                    <Trash2 className="w-4 h-4" />
+            <div className="border-b border-border bg-secondary/50">
+              <div className="flex items-center justify-between px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="font-display text-lg text-foreground">Кино AI</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {messages.length > 0 && (
+                    <button
+                      onClick={() => void clearChat()}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                      title="Очистить чат"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button onClick={() => setOpen(false)} className="text-muted-foreground">
+                    <X className="w-5 h-5" />
                   </button>
-                )}
-                <button onClick={() => setOpen(false)} className="text-muted-foreground">
-                  <X className="w-5 h-5" />
-                </button>
+                </div>
+              </div>
+              <div className="px-3 pb-2.5">
+                <div className="flex bg-secondary rounded-xl p-1">
+                  {PROVIDERS.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleSetProvider(p.id)}
+                      className={`flex flex-1 items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        provider === p.id
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: p.dot }} />
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
