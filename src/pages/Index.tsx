@@ -451,6 +451,7 @@ const Index = () => {
                     onSkip={() => {
                       void handleDismissMovie(movie);
                       setRecommendations(prev => prev.filter(r => r.id !== movie.id));
+                      void getMovie();
                     }}
                   />
                 ))}

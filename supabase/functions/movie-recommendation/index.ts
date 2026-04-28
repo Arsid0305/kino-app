@@ -128,38 +128,47 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    // Cap each forbidden segment to 40 titles to keep the prompt manageable
-    const watchedTitles = titlesOf(watchedMovies.slice(0, 40));
-    const watchlistTitles = titlesOf(watchlistMovies.slice(0, 40));
-    const dismissedTitles = titlesOf(dismissedMovies.slice(0, 40));
+    // Build unified forbidden titles list (numbered for clarity)
+    const forbiddenTitles = [
+      ...watchedMovies.slice(0, 40),
+      ...watchlistMovies.slice(0, 40),
+      ...dismissedMovies.slice(0, 40),
+    ].map(m => (m as MovieCtx).titleRu ?? (m as MovieCtx).title ?? "").filter(Boolean);
 
     const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
-      const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
-        .filter(Boolean).join(", ");
+      const allForbidden = alreadyShown
+        ? [...forbiddenTitles, alreadyShown]
+        : [...forbiddenTitles];
+      const forbiddenBlock = allForbidden.length > 0
+        ? allForbidden.map((t, i) => `${i + 1}. ${t}`).join("\n")
+        : "нет";
 
       const body = JSON.stringify({
         model: DEEPSEEK_MODEL,
         messages: [
           {
             role: "system",
-            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON-объектом без markdown, без пояснений, без лишнего текста.",
+            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON-объектом без markdown, без пояснений, без лишнего текста. Перед ответом ОБЯЗАТЕЛЬНО проверяй, что предлагаемый фильм НЕ входит в список запрета.",
           },
           {
             role: "user",
-            content: `Порекомендуй ОДИН фильм или сериал, которого НЕТ в списке ниже.
+            content: `АБСОЛЮТНЫЙ ЗАПРЕТ — эти фильмы пользователь УЖЕ СМОТРЕЛ или уже знает. Предлагать их НЕЛЬЗЯ. Проверь каждый пункт перед ответом:
+${forbiddenBlock}
 
-ЗАПРЕЩЁННЫЕ (не предлагать ни при каких условиях): ${forbidden || "нет"}
+Примечание: фильмы из раздела «Вкусовой профиль» (Favorites и др.) — тоже уже просмотрены и входят в запрет выше. Они показывают СТИЛЬ вкуса, а не то, что нужно рекомендовать.
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
-Вкусовой профиль: ${tasteProfile || "пуст"}
+Вкусовой профиль (используй только для понимания стиля): ${tasteProfile || "пуст"}
 
+Порекомендуй ОДИН фильм или сериал, которого НЕТ в списке запрета выше.
 Верни ТОЛЬКО JSON-объект (без массива, без пояснений):
 {"title":"Название","titleRu":"Русское название","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"Режиссёр","description":"Синопсис 2-3 предложения","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0}`,
           },
         ],
         stream: false,
         max_tokens: 800,
-        temperature: 1.0,
+        temperature: 0.7,
+        response_format: { type: "json_object" },
       });
 
       // Retry once on transient failures (JSON parse errors, 5xx)
