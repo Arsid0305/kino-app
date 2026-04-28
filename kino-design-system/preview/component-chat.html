@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 16px; font-family: 'Inter', sans-serif; }
+  .chat-panel {
+    background: hsl(220 18% 10%); border: 1px solid #262d38;
+    border-radius: 16px 16px 0 0; max-width: 360px; overflow: hidden;
+  }
+  .chat-header { border-bottom: 1px solid #262d38; background: hsl(220 15% 16% / 0.5); }
+  .header-top { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
+  .header-title { display: flex; align-items: center; gap: 7px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.04em; color: #ece9e0; }
+  .header-title svg { stroke: hsl(38 90% 55%); }
+  .provider-tabs { display: flex; background: hsl(220 15% 16%); border-radius: 12px; padding: 4px; margin: 0 12px 10px; gap: 2px; }
+  .tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 5px 0; border-radius: 9px; font-size: 11px; font-weight: 500; color: #787e8a; cursor: pointer; }
+  .tab.active { background: hsl(220 18% 10%); color: #ece9e0; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .messages { padding: 12px; display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow: hidden; }
+  .msg-user { align-self: flex-end; background: hsl(38 90% 55%); color: #0d1117; border-radius: 14px 14px 4px 14px; padding: 8px 12px; font-size: 12px; max-width: 70%; }
+  .msg-bot { align-self: flex-start; background: hsl(220 15% 16%); color: #ece9e0; border-radius: 14px 14px 14px 4px; padding: 8px 12px; font-size: 12px; max-width: 80%; line-height: 1.4; }
+  .loader { align-self: flex-start; background: hsl(220 15% 16%); border-radius: 14px 14px 14px 4px; padding: 10px 14px; }
+  .chat-input { padding: 10px 12px; border-top: 1px solid #262d38; background: hsl(220 15% 16% / 0.3); display: flex; gap: 7px; }
+  .input { flex: 1; background: hsl(220 15% 16%); border: 1px solid #262d38; border-radius: 12px; padding: 8px 12px; font-size: 12px; color: #ece9e0; outline: none; }
+  .send-btn { width: 36px; height: 36px; border-radius: 10px; background: hsl(38 90% 55%); color: #0d1117; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  /* Provider icons */
+  .pi { width: 12px; height: 12px; }
+</style>
+</head>
+<body>
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="header-top">
+        <div class="header-title">
+          <svg width="14" height="14" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+          Кино AI
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <svg style="stroke:#787e8a"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <svg style="stroke:#787e8a"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </div>
+      </div>
+      <div class="provider-tabs">
+        <div class="tab active">
+          <svg class="pi" viewBox="0 0 24 24" fill="none" stroke="#E8784D" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="2.5" fill="#E8784D" stroke="none"/></svg>
+          Claude
+        </div>
+        <div class="tab">
+          <svg class="pi" viewBox="0 0 24 24" fill="#10A37F" stroke="none"><path d="M12 2C10.5 6.5 6.5 10.5 2 12c4.5 1.5 8.5 5.5 10 10 1.5-4.5 5.5-8.5 10-10-4.5-1.5-8.5-5.5-10-10z"/></svg>
+          GPT
+        </div>
+        <div class="tab">
+          <svg class="pi" viewBox="0 0 24 24" fill="#4285F4" stroke="none"><path d="M12 2C10.5 6.5 6.5 10.5 2 12c4.5 1.5 8.5 5.5 10 10 1.5-4.5 5.5-8.5 10-10-4.5-1.5-8.5-5.5-10-10z"/></svg>
+          Gemini
+        </div>
+        <div class="tab">
+          <svg class="pi" viewBox="0 0 24 24" fill="#4D6AFF" stroke="none"><path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9z"/></svg>
+          DS
+        </div>
+      </div>
+    </div>
+    <div class="messages">
+      <div class="msg-user">Хочу что-то напряжённое на вечер, желательно короткое</div>
+      <div class="msg-bot">Попробуй **Dredd** (2012) — 95 минут чистого экшена, очень плотный темп. Или **Локк** — один актёр, один автомобиль, 85 минут, но держит мёртвой хваткой.</div>
+    </div>
+    <div class="chat-input">
+      <input class="input" placeholder="Например: короткие серии на несколько дней">
+      <button class="send-btn">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+</body>
+</html>

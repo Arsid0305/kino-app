@@ -1,0 +1,26 @@
+name: Deploy Supabase Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - run: supabase functions deploy ai-chat --project-ref ovhwxfdtkzwxfomdlgjv
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SBP_ACCESS_TOKEN }}
+
+      - run: supabase functions deploy movie-recommendation --project-ref ovhwxfdtkzwxfomdlgjv
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SBP_ACCESS_TOKEN }}

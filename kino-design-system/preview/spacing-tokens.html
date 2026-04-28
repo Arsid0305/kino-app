@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 14px; font-family: 'Inter', sans-serif; }
+  .section-title { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #787e8a; margin-bottom: 8px; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .radius-demo { height: 28px; background: hsl(220 15% 16%); border: 1px solid #262d38; flex: 1; max-width: 80px; }
+  .label { font-size: 9px; color: #ece9e0; }
+  .sub   { font-size: 8px; color: #787e8a; }
+  .divider { border: none; border-top: 1px solid #262d38; margin: 10px 0; }
+  .sp-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .sp-block { background: hsl(38 90% 55% / 0.25); border: 1px solid hsl(38 90% 55% / 0.5); border-radius: 2px; height: 14px; }
+</style>
+</head>
+<body>
+  <div class="section-title">Border Radius</div>
+  <div class="row">
+    <div class="radius-demo" style="border-radius:4px"></div>
+    <div><div class="label">rounded-sm · 4px</div><div class="sub">Minimal</div></div>
+  </div>
+  <div class="row">
+    <div class="radius-demo" style="border-radius:10px"></div>
+    <div><div class="label">rounded-xl · 10px</div><div class="sub">Chips, inputs, small buttons</div></div>
+  </div>
+  <div class="row">
+    <div class="radius-demo" style="border-radius:12px"></div>
+    <div><div class="label">rounded-2xl · 16px</div><div class="sub">Cards, modals, large panels</div></div>
+  </div>
+  <div class="row">
+    <div class="radius-demo" style="border-radius:9999px"></div>
+    <div><div class="label">rounded-full</div><div class="sub">FAB, circular buttons</div></div>
+  </div>
+  <hr class="divider">
+  <div class="section-title">Spacing Scale</div>
+  <div class="sp-row"><div class="sp-block" style="width:4px"></div><div class="label" style="font-size:9px">4px · gap-1 · icon-text gap</div></div>
+  <div class="sp-row"><div class="sp-block" style="width:8px"></div><div class="label" style="font-size:9px">8px · gap-2 · chip inner gap</div></div>
+  <div class="sp-row"><div class="sp-block" style="width:12px"></div><div class="label" style="font-size:9px">12px · gap-3 · card inner spacing</div></div>
+  <div class="sp-row"><div class="sp-block" style="width:16px"></div><div class="label" style="font-size:9px">16px · px-4 · horizontal page margin</div></div>
+  <div class="sp-row"><div class="sp-block" style="width:20px"></div><div class="label" style="font-size:9px">20px · p-5 · card padding</div></div>
+  <div class="sp-row"><div class="sp-block" style="width:24px"></div><div class="label" style="font-size:9px">24px · space-y-6 · section gap</div></div>
+</body>
+</html>

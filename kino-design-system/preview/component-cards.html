@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 16px; font-family: 'Inter', sans-serif; }
+  .card {
+    background: hsl(220 18% 10%); border: 1px solid #262d38;
+    border-radius: 16px; overflow: hidden; max-width: 340px;
+    box-shadow: 0 0 30px -5px hsl(38 90% 55% / 0.15);
+  }
+  .card-art {
+    background: linear-gradient(135deg, hsl(38 90% 55% / 0.2), hsl(220 18% 12%), hsl(220 15% 20%));
+    height: 100px; display: flex; align-items: center; justify-content: center;
+  }
+  .card-body { padding: 16px; }
+  .title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.04em; color: #ece9e0; }
+  .subtitle { font-size: 11px; color: #787e8a; margin-top: 2px; }
+  .desc { font-size: 13px; color: #d6d0c4; margin-top: 8px; line-height: 1.5; }
+  .reason-box { border-radius: 10px; border: 1px solid hsl(38 90% 55% / 0.2); background: hsl(38 90% 55% / 0.05); padding: 10px; margin-top: 8px; }
+  .reason-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: hsl(38 90% 55%); }
+  .reason-text { font-size: 12px; color: #d6d0c4; margin-top: 4px; line-height: 1.4; }
+  .meta { display: flex; align-items: center; gap: 12px; font-size: 11px; color: #787e8a; margin-top: 8px; flex-wrap: wrap; }
+  .meta-gold { color: hsl(38 90% 55%); }
+  .tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { padding: 2px 7px; border-radius: 5px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tag-g { background: hsl(220 15% 16%); color: #d6d0c4; }
+  .tag-m { background: hsl(38 90% 55% / 0.1); color: hsl(38 90% 55%); }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-outline { flex: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid #262d38; background: none; color: #787e8a; font-size: 11px; cursor: pointer; text-align:center; line-height: 1.2; }
+  .btn-primary { flex: 1; padding: 10px; border-radius: 10px; border: none; background: hsl(38 90% 55%); color: #0d1117; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-skip { padding: 10px 16px; border-radius: 10px; border: 1px solid #262d38; background: none; color: #787e8a; font-size: 13px; font-weight: 500; cursor: pointer; }
+  svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="card-art">
+      <svg style="width:52px;height:52px;stroke:hsl(38 90% 55% / 0.5)" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+    </div>
+    <div class="card-body">
+      <div class="title">ИНТЕРСТЕЛЛАР</div>
+      <div class="subtitle">Interstellar · 2014</div>
+      <div class="desc">Команда исследователей путешествует через червоточину в поисках нового дома для человечества.</div>
+      <div class="reason-box">
+        <div class="reason-label">Почему вам подойдёт</div>
+        <div class="reason-text">Вы любите масштабные научно-фантастические фильмы с глубоким эмоциональным зарядом.</div>
+      </div>
+      <div class="meta">
+        <span>⏱ 169 мин</span>
+        <span>👤 Christopher Nolan</span>
+        <span class="meta-gold">★ КП 8.6</span>
+        <span style="color:hsl(38 70% 45%)">✨ Прогноз: 9.1</span>
+      </div>
+      <div class="tags">
+        <span class="tag tag-g">фантастика</span>
+        <span class="tag tag-g">драма</span>
+        <span class="tag tag-m">вдохновляющее</span>
+        <span class="tag tag-m">напряжённое</span>
+      </div>
+      <div class="actions">
+        <button class="btn-outline">Где<br>смотреть</button>
+        <button class="btn-primary">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          Смотрю!
+        </button>
+        <button class="btn-skip">Другой</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

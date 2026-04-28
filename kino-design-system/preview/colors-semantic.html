@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; font-family: 'Inter', sans-serif; padding: 14px; }
+  .rows { display: flex; flex-direction: column; gap: 6px; }
+  .row { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+  .info { flex: 1; }
+  .token { font-size: 10px; font-weight: 600; color: #ece9e0; }
+  .desc  { font-size: 9px; color: #787e8a; margin-top: 1px; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+</style>
+</head>
+<body>
+<div class="cols">
+  <div class="rows">
+    <div class="row"><div class="dot" style="background:hsl(220 20% 6%)"></div><div class="info"><div class="token">--background</div><div class="desc">Page bg</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(220 18% 10%)"></div><div class="info"><div class="token">--card</div><div class="desc">Card / popover bg</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(220 15% 16%)"></div><div class="info"><div class="token">--secondary</div><div class="desc">Pill tabs, secondary bg</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(220 15% 14%)"></div><div class="info"><div class="token">--muted</div><div class="desc">Muted bg</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(220 15% 18%); border: 2px solid hsl(220 15% 18%)"></div><div class="info"><div class="token">--border</div><div class="desc">Dividers, outlines</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(38 90% 55%)"></div><div class="info"><div class="token">--ring</div><div class="desc">Focus ring</div></div></div>
+  </div>
+  <div class="rows">
+    <div class="row"><div class="dot" style="background:hsl(40 20% 92%)"></div><div class="info"><div class="token">--foreground</div><div class="desc">Primary text</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(40 15% 80%)"></div><div class="info"><div class="token">--secondary-fg</div><div class="desc">Body text on cards</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(220 10% 50%)"></div><div class="info"><div class="token">--muted-fg</div><div class="desc">Hints, placeholders</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(38 90% 55%)"></div><div class="info"><div class="token">--primary</div><div class="desc">CTAs, active states</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(38 70% 45%)"></div><div class="info"><div class="token">--accent</div><div class="desc">Darker amber, accents</div></div></div>
+    <div class="row"><div class="dot" style="background:hsl(0 70% 50%)"></div><div class="info"><div class="token">--destructive</div><div class="desc">Error / delete</div></div></div>
+  </div>
+</div>
+</body>
+</html>

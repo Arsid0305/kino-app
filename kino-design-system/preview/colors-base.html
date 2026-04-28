@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; font-family: 'Inter', sans-serif; padding: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .swatch { border-radius: 8px; }
+  .swatch-block { height: 52px; border-radius: 8px 8px 0 0; }
+  .swatch-label { padding: 5px 7px; background: hsl(220 18% 10%); border-radius: 0 0 8px 8px; border: 1px solid hsl(220 15% 18%); border-top: none; }
+  .swatch-name { font-size: 9px; font-weight: 600; color: #ece9e0; }
+  .swatch-hex  { font-size: 8px; color: #787e8a; margin-top: 1px; }
+</style>
+</head>
+<body>
+<div class="grid">
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 20% 6%)"></div>
+    <div class="swatch-label"><div class="swatch-name">background</div><div class="swatch-hex">#0d1117</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 18% 10%)"></div>
+    <div class="swatch-label"><div class="swatch-name">card</div><div class="swatch-hex">#141920</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 18% 12%)"></div>
+    <div class="swatch-label"><div class="swatch-name">surface</div><div class="swatch-hex">#181f28</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 15% 16%)"></div>
+    <div class="swatch-label"><div class="swatch-name">secondary</div><div class="swatch-hex">#222833</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 15% 18%)"></div>
+    <div class="swatch-label"><div class="swatch-name">border</div><div class="swatch-hex">#262d38</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 15% 20%)"></div>
+    <div class="swatch-label"><div class="swatch-name">highlight</div><div class="swatch-hex">#2a3240</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(220 10% 50%)"></div>
+    <div class="swatch-label"><div class="swatch-name">muted-fg</div><div class="swatch-hex">#787e8a</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(40 20% 92%)"></div>
+    <div class="swatch-label"><div class="swatch-name">foreground</div><div class="swatch-hex">#ece9e0</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(38 90% 55%)"></div>
+    <div class="swatch-label"><div class="swatch-name">primary</div><div class="swatch-hex">#f3a825</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(38 70% 45%)"></div>
+    <div class="swatch-label"><div class="swatch-name">accent</div><div class="swatch-hex">#c9841a</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(25 80% 50%)"></div>
+    <div class="swatch-label"><div class="swatch-name">warm</div><div class="swatch-hex">#e07420</div></div>
+  </div>
+  <div class="swatch">
+    <div class="swatch-block" style="background:hsl(0 70% 50%)"></div>
+    <div class="swatch-label"><div class="swatch-name">destructive</div><div class="swatch-hex">#e53e3e</div></div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 16px; font-family: 'Inter', sans-serif; }
+  .section-title { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #787e8a; margin-bottom: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 14px; border-radius: 12px;
+    border: 1px solid #262d38; background: hsl(220 15% 16%);
+    color: #d6d0c4; font-size: 13px; font-weight: 500;
+  }
+  .chip.active {
+    background: hsl(38 90% 55% / 0.15); border-color: hsl(38 90% 55%);
+    color: hsl(38 90% 55%); box-shadow: 0 0 30px -5px hsl(38 90% 55% / 0.2);
+  }
+  .chip-icon { font-size: 15px; }
+  .chip-sub { font-size: 9px; color: #787e8a; margin-top: 1px; display: block; line-height: 1; }
+  .chip.active .chip-sub { color: hsl(38 70% 45%); }
+  .tag { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
+  .tag-genre { background: hsl(220 15% 16%); color: #d6d0c4; }
+  .tag-mood  { background: hsl(38 90% 55% / 0.1); color: hsl(38 90% 55%); }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+</style>
+</head>
+<body>
+  <div class="section-title">Filter Chips — default</div>
+  <div class="chips">
+    <div class="chip"><span class="chip-icon">🎬</span><span>Фильм</span></div>
+    <div class="chip"><span class="chip-icon">📺</span><span>Сериал</span></div>
+    <div class="chip"><span class="chip-icon">🎞️</span><div><span>Мини-сериал</span><span class="chip-sub">до 10 серий</span></div></div>
+  </div>
+
+  <div class="section-title">Filter Chips — active (selected)</div>
+  <div class="chips">
+    <div class="chip active"><span class="chip-icon">🌙</span><span>Вечер</span></div>
+    <div class="chip active"><span class="chip-icon">😂</span><div><span>Комедия</span></div></div>
+    <div class="chip"><span class="chip-icon">🌅</span><span>Утро</span></div>
+    <div class="chip"><span class="chip-icon">☀️</span><span>День</span></div>
+  </div>
+
+  <div class="section-title">Genre / Mood Tags (on cards)</div>
+  <div class="tags">
+    <span class="tag tag-genre">боевик</span>
+    <span class="tag tag-genre">триллер</span>
+    <span class="tag tag-genre">фантастика</span>
+    <span class="tag tag-mood">напряжённое</span>
+    <span class="tag tag-mood">вдохновляющее</span>
+  </div>
+</body>
+</html>

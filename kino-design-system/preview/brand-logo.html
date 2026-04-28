@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 20px; font-family: 'Inter', sans-serif; display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .icon-lg { width: 80px; height: 80px; border-radius: 18px; overflow: hidden; }
+  .icon-md { width: 56px; height: 56px; border-radius: 14px; overflow: hidden; }
+  .icon-sm { width: 36px; height: 36px; border-radius: 9px; overflow: hidden; }
+  .logo-row { display: flex; align-items: center; gap: 12px; }
+  .wordmark { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 0.04em; color: #ece9e0; line-height: 1; }
+  .sub { font-size: 11px; color: #787e8a; margin-top: 2px; }
+  .divider { width: 1px; height: 60px; background: #262d38; }
+  .icons-row { display: flex; align-items: center; gap: 10px; }
+</style>
+</head>
+<body>
+  <div class="logo-row">
+    <div class="icon-lg">
+      <img src="../assets/icon_192.png" width="80" height="80" alt="Kino icon">
+    </div>
+    <div>
+      <div class="wordmark">КИНО</div>
+      <div class="sub">Глобальный AI подбор</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="icons-row">
+    <div class="icon-md">
+      <img src="../assets/icon_192.png" width="56" height="56" alt="Kino icon md">
+    </div>
+    <div class="icon-sm">
+      <img src="../assets/icon_192.png" width="36" height="36" alt="Kino icon sm">
+    </div>
+    <div style="width:28px;height:28px;border-radius:6px;overflow:hidden">
+      <img src="../assets/icon_192.png" width="28" height="28" alt="Kino icon xs">
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div>
+    <svg width="48" height="48" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="6" fill="#0f1218"></rect>
+      <rect x="5" y="8" width="22" height="5" rx="1.5" fill="#f3a825"></rect>
+      <line x1="10" y1="8" x2="8" y2="13" stroke="#0f1218" stroke-width="2.2" stroke-linecap="round"></line>
+      <line x1="15" y1="8" x2="13" y2="13" stroke="#0f1218" stroke-width="2.2" stroke-linecap="round"></line>
+      <line x1="20" y1="8" x2="18" y2="13" stroke="#0f1218" stroke-width="2.2" stroke-linecap="round"></line>
+      <rect x="5" y="14" width="22" height="11" rx="1.5" fill="#f3a825"></rect>
+      <circle cx="16" cy="19.5" r="3.5" fill="#0f1218"></circle>
+      <circle cx="16" cy="19.5" r="2" fill="#f3a825" opacity="0.5"></circle>
+    </svg>
+    <div style="font-size:9px;color:#787e8a;margin-top:4px">SVG logo mark</div>
+  </div>
+</body>
+</html>

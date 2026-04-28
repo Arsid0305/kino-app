@@ -1,0 +1,237 @@
+/*
+ * KINO Design System — Colors & Typography
+ * Source: github.com/Arsid0305/kino-app
+ * Fonts: Bebas Neue (display), Inter (body) — Google Fonts
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ============================================================
+   BASE COLOR TOKENS
+   ============================================================ */
+:root {
+  /* Backgrounds */
+  --color-bg:            hsl(220 20% 6%);    /* #0d1117 — page background */
+  --color-card:          hsl(220 18% 10%);   /* #141920 — card / popover bg */
+  --color-surface:       hsl(220 18% 12%);   /* #181f28 — cinema-surface */
+  --color-surface-hi:    hsl(220 15% 20%);   /* #2a3240 — cinema-highlight / hover bg */
+  --color-secondary:     hsl(220 15% 16%);   /* #222833 — secondary surfaces */
+  --color-muted:         hsl(220 15% 14%);   /* #1e242e — muted bg */
+
+  /* Foreground */
+  --color-fg:            hsl(40 20% 92%);    /* #ece9e0 — primary text */
+  --color-fg-secondary:  hsl(40 15% 80%);    /* #d6d0c4 — secondary text */
+  --color-fg-muted:      hsl(220 10% 50%);   /* #787e8a — hints / placeholders */
+
+  /* Primary — amber gold */
+  --color-primary:       hsl(38 90% 55%);    /* #f3a825 — gold accent */
+  --color-primary-dark:  hsl(38 70% 45%);    /* #c9841a — darker amber */
+  --color-primary-fg:    hsl(220 20% 6%);    /* #0d1117 — text on primary */
+  --color-warm:          hsl(25 80% 50%);    /* #e07420 — warm amber */
+
+  /* Structural */
+  --color-border:        hsl(220 15% 18%);   /* #262d38 — borders / dividers */
+  --color-input:         hsl(220 15% 18%);   /* #262d38 — input borders */
+  --color-ring:          hsl(38 90% 55%);    /* #f3a825 — focus ring */
+
+  /* Semantic */
+  --color-destructive:   hsl(0 70% 50%);     /* #e53e3e — error / delete */
+  --color-destructive-fg: hsl(0 0% 98%);     /* #fafafa — text on destructive */
+
+  /* Cinema custom */
+  --cinema-glow-color:   hsl(38 90% 55% / 0.2);
+  --cinema-text-glow:    hsl(38 90% 55% / 0.4);
+}
+
+/* ============================================================
+   SEMANTIC COLOR TOKENS
+   ============================================================ */
+:root {
+  --background:          var(--color-bg);
+  --foreground:          var(--color-fg);
+  --card-bg:             var(--color-card);
+  --card-fg:             var(--color-fg);
+  --primary:             var(--color-primary);
+  --primary-foreground:  var(--color-primary-fg);
+  --secondary-bg:        var(--color-secondary);
+  --secondary-fg:        var(--color-fg-secondary);
+  --muted-bg:            var(--color-muted);
+  --muted-fg:            var(--color-fg-muted);
+  --accent:              var(--color-primary-dark);
+  --accent-fg:           var(--color-primary-fg);
+  --border:              var(--color-border);
+  --radius:              0.75rem;
+  --radius-sm:           calc(var(--radius) - 2px);
+  --radius-lg:           calc(var(--radius) + 2px);
+}
+
+/* ============================================================
+   TYPOGRAPHY TOKENS
+   ============================================================ */
+:root {
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  /* Scale */
+  --text-2xl:  1.5rem;    /* 24px — app title, movie title */
+  --text-xl:   1.25rem;   /* 20px — primary CTA */
+  --text-lg:   1.125rem;  /* 18px — section titles */
+  --text-base: 1rem;      /* 16px — standard body */
+  --text-sm:   0.875rem;  /* 14px — descriptions, chat messages */
+  --text-xs:   0.75rem;   /* 12px — metadata, genre tags */
+  --text-2xs:  0.625rem;  /* 10px — micro labels, timestamps */
+
+  /* Letter spacing */
+  --tracking-display: 0.04em;  /* Bebas Neue standard */
+  --tracking-label:   0.08em;  /* Uppercase micro-labels */
+  --tracking-widest:  0.1em;   /* Section headers */
+}
+
+/* ============================================================
+   BASE ELEMENT STYLES
+   ============================================================ */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: var(--tracking-display);
+  color: var(--foreground);
+}
+
+h1 { font-size: var(--text-2xl); }
+h2 { font-size: var(--text-xl); }
+h3 { font-size: var(--text-lg); }
+
+p  { font-size: var(--text-sm); color: var(--secondary-fg); }
+
+code, pre {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* Glow effects */
+.cinema-glow {
+  box-shadow: 0 0 30px -5px var(--cinema-glow-color);
+}
+.cinema-text-glow {
+  text-shadow: 0 0 20px var(--cinema-text-glow);
+}
+
+/* Glass surface */
+.glass-surface {
+  background: hsl(220 18% 10% / 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Label style */
+.label-uppercase {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  color: var(--muted-fg);
+}
+
+/* Primary button */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  letter-spacing: var(--tracking-display);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-primary:active { transform: scale(0.97); }
+
+/* Secondary button */
+.btn-secondary {
+  background: var(--secondary-bg);
+  color: var(--secondary-fg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: var(--radius);
+  padding: 0.625rem 1rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.btn-secondary:hover { border-color: var(--muted-fg); }
+.btn-secondary:active { transform: scale(0.95); }
+
+/* Card */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) + 4px);
+  overflow: hidden;
+}
+
+/* Filter chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--secondary-bg);
+  color: var(--secondary-fg);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip:active { transform: scale(0.95); }
+.chip.selected {
+  background: hsl(38 90% 55% / 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+  box-shadow: 0 0 30px -5px var(--cinema-glow-color);
+}
+
+/* Input */
+.input {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.625rem 0.75rem;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input::placeholder { color: var(--muted-fg); }
+.input:focus { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary); }
+
+/* Tag / genre badge */
+.tag {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.tag-genre { background: var(--secondary-bg); color: var(--secondary-fg); }
+.tag-mood  { background: hsl(38 90% 55% / 0.1); color: var(--primary); }
