@@ -111,12 +111,8 @@ async function callGemini(
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
-        // google_search tools are incompatible with responseMimeType: json — use Tavily instead
-        generationConfig: {
-          maxOutputTokens: 4096,
-          temperature: 0.7,
-          responseMimeType: "application/json",
-        },
+        tools: [{ google_search: {} }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.7 },
       }),
     },
   );
@@ -124,7 +120,9 @@ async function callGemini(
   const d = await res.json() as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const raw = d.candidates?.[0]?.content?.parts?.map(p => p.text ?? "").join("").trim() ?? "";
+  // Strip markdown fences Gemini sometimes wraps around JSON
+  return raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 }
 
 async function callProvider(
@@ -381,7 +379,8 @@ serve(async req => {
     if (searchQuery === lastUserMsg) {
       searchQuery = `${lastUserMsg} movie film series`;
     }
-    const searchContext = await tavilySearch(searchQuery);
+    // Gemini uses its own Google Search grounding — skip Tavily for it
+    const searchContext = provider === "gemini" ? "" : await tavilySearch(searchQuery);
 
     const now = new Date();
     const currentDate = now.toLocaleDateString("ru-RU", { year: "numeric", month: "long", day: "numeric" });
