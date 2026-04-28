@@ -144,6 +144,7 @@ export const AiAdvisor = ({
 
   const handleSetProvider = (p: Provider) => {
     setProvider(p);
+    setInput('');
     localStorage.setItem('kino-ai-provider', p);
   };
 
