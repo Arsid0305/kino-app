@@ -59,7 +59,7 @@ const Index = () => {
     mood: null,
     company: null,
   });
-  const [recommendation, setRecommendation] = useState<Movie | null>(null);
+  const [recommendations, setRecommendations] = useState<Movie[]>([]);
   const [ratingMovie, setRatingMovie] = useState<Movie | null>(null);
   const [watched, setWatched] = useState<WatchedMovie[]>(() => loadLocalArray<WatchedMovie>('cinema-watched'));
   const [customMovies, setCustomMovies] = useState<Movie[]>(() => loadLocalArray<Movie>('cinema-custom-movies'));
@@ -167,19 +167,18 @@ const Index = () => {
 
     try {
       if (session) {
-        const aiMovie = await requestGlobalRecommendation(filters, watched, customMovies, dismissedMovies);
-        setRecommendation(aiMovie);
+        const aiMovies = await requestGlobalRecommendation(filters, watched, customMovies, dismissedMovies);
+        setRecommendations(aiMovies);
         return;
       }
 
       const localMovie = getRecommendation(filters, watched, customMovies, dismissedMovies);
-      setRecommendation(localMovie);
+      setRecommendations(localMovie ? [localMovie] : []);
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Не удалось получить рекомендацию');
-
       const fallbackMovie = getRecommendation(filters, watched, customMovies, dismissedMovies);
-      setRecommendation(fallbackMovie);
+      setRecommendations(fallbackMovie ? [fallbackMovie] : []);
     } finally {
       setLoadingRecommendation(false);
     }
@@ -207,7 +206,6 @@ const Index = () => {
     localStorage.setItem('cinema-custom-movies', JSON.stringify(updatedWatchlist));
     localStorage.setItem('cinema-dismissed-movies', JSON.stringify(updatedDismissed));
     setRatingMovie(null);
-    setRecommendation(null);
 
     if (session) {
       try {
@@ -387,15 +385,20 @@ const Index = () => {
                   : 'ПОДОБРАТЬ ФИЛЬМ'}
               </motion.button>
 
-              <AnimatePresence mode="wait">
-                {recommendation && (
+              <AnimatePresence>
+                {recommendations.map(movie => (
                   <MovieCard
-                    key={recommendation.id}
-                    movie={recommendation}
-                    onRate={setRatingMovie}
-                    onSkip={() => void getMovie()}
+                    key={movie.id}
+                    movie={movie}
+                    onRate={m => setRatingMovie(m)}
+                    onSkip={() => {
+                      void handleDismissMovie(movie);
+                      const remaining = recommendations.filter(r => r.id !== movie.id);
+                      setRecommendations(remaining);
+                      if (remaining.length === 0) void getMovie();
+                    }}
                   />
-                )}
+                ))}
               </AnimatePresence>
             </motion.div>
           ) : (

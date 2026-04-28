@@ -1,16 +1,16 @@
 import { supabase } from '@/integrations/supabase/client';
 import { FilterState, Movie, WatchedMovie } from './movieTypes';
 import { buildFilterSummary, buildTasteProfileSummary, toMovieContext } from './tasteProfile';
+import { getMovieDedupKey } from './movieIdentity';
 
 const RECOMMENDATION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/movie-recommendation`;
 
 function normalizeRecommendation(raw: Record<string, unknown>): Movie {
   const duration = Number(raw.duration ?? 110);
   const format = raw.format === 'short' || raw.format === 'long' ? raw.format : 'medium';
-  const type = raw.type === 'series' ? 'series' : 'film';
+  const type = raw.type === 'series' ? 'series' : raw.type === 'miniseries' ? 'miniseries' : 'film';
   const forCompany = raw.forCompany === 'solo' || raw.forCompany === 'pair' || raw.forCompany === 'group'
-    ? raw.forCompany
-    : 'any';
+    ? raw.forCompany : 'any';
 
   return {
     id: `ai-global:${String(raw.kpQuery ?? raw.titleRu ?? raw.title ?? crypto.randomUUID())}`,
@@ -23,9 +23,7 @@ function normalizeRecommendation(raw: Record<string, unknown>): Movie {
     description: String(raw.description ?? ''),
     director: String(raw.director ?? ''),
     forCompany,
-    timeOfDay: Array.isArray(raw.timeOfDay)
-      ? raw.timeOfDay as Movie['timeOfDay']
-      : ['evening'],
+    timeOfDay: Array.isArray(raw.timeOfDay) ? raw.timeOfDay as Movie['timeOfDay'] : ['evening'],
     format,
     kpRating: typeof raw.kpRating === 'number' ? raw.kpRating : undefined,
     country: typeof raw.country === 'string' ? raw.country : undefined,
@@ -42,7 +40,7 @@ export async function requestGlobalRecommendation(
   watched: WatchedMovie[],
   watchlist: Movie[],
   dismissed: Movie[] = []
-) {
+): Promise<Movie[]> {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
 
@@ -52,10 +50,7 @@ export async function requestGlobalRecommendation(
 
   const response = await fetch(RECOMMENDATION_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({
       filters: buildFilterSummary(filters),
       tasteProfile: buildTasteProfileSummary(watched, watchlist),
@@ -71,5 +66,22 @@ export async function requestGlobalRecommendation(
   }
 
   const payload = await response.json();
-  return normalizeRecommendation(payload.recommendation as Record<string, unknown>);
+
+  // Handle both { recommendations: [] } and legacy { recommendation: {} }
+  const rawRecs: Record<string, unknown>[] = Array.isArray(payload.recommendations)
+    ? payload.recommendations
+    : payload.recommendation
+    ? [payload.recommendation as Record<string, unknown>]
+    : [];
+
+  const allMovies = rawRecs.map(normalizeRecommendation);
+
+  // Filter out any movie the user already watched, has in watchlist, or dismissed
+  const excludedKeys = new Set([
+    ...watched.map(getMovieDedupKey),
+    ...watchlist.map(getMovieDedupKey),
+    ...dismissed.map(getMovieDedupKey),
+  ]);
+
+  return allMovies.filter(m => !excludedKeys.has(getMovieDedupKey(m)));
 }
