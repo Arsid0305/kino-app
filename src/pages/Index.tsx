@@ -228,7 +228,14 @@ const Index = () => {
     try {
       if (session) {
         const aiMovies = await requestGlobalRecommendation(filters, watched, customMovies, dismissedMovies);
-        setRecommendations(aiMovies);
+        // Filter out movies the user already watched, has in watchlist, or dismissed
+        const excludedKeys = new Set([
+          ...watched.map(getMovieDedupKey),
+          ...customMovies.map(getMovieDedupKey),
+          ...dismissedMovies.map(getMovieDedupKey),
+        ]);
+        const fresh = aiMovies.filter(m => !excludedKeys.has(getMovieDedupKey(m)));
+        setRecommendations(fresh.length > 0 ? fresh : aiMovies);
         return;
       }
 
@@ -450,7 +457,9 @@ const Index = () => {
                     }}
                     onSkip={() => {
                       void handleDismissMovie(movie);
-                      setRecommendations(prev => prev.filter(r => r.id !== movie.id));
+                      const remaining = recommendations.filter(r => r.id !== movie.id);
+                      setRecommendations(remaining);
+                      if (remaining.length === 0) void getMovie();
                     }}
                   />
                 ))}
