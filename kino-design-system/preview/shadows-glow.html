@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bebas+Neue&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; padding: 16px; font-family: 'Inter', sans-serif; }
+  .row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .demo { width: 80px; height: 44px; border-radius: 12px; background: hsl(220 18% 10%); border: 1px solid #262d38; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .label { font-size: 10px; font-weight: 600; color: #ece9e0; }
+  .sub { font-size: 9px; color: #787e8a; margin-top: 2px; }
+  .glow-demo { box-shadow: 0 0 30px -5px hsl(38 90% 55% / 0.25); border-color: hsl(38 90% 55% / 0.3); }
+  .text-glow { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #f3a825; text-shadow: 0 0 20px hsl(38 90% 55% / 0.5); letter-spacing: 0.04em; }
+  .glass-demo { background: hsl(220 18% 10% / 0.8); backdrop-filter: blur(20px); }
+  .border-demo { border-color: hsl(38 90% 55% / 0.3); background: hsl(38 90% 55% / 0.05); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="demo glow-demo"></div>
+    <div>
+      <div class="label">cinema-glow</div>
+      <div class="sub">box-shadow: 0 0 30px -5px gold/20%</div>
+      <div class="sub">Cards, active chips, primary btn</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="demo" style="background:transparent;border:none"><div class="text-glow">КИНО</div></div>
+    <div>
+      <div class="label">cinema-text-glow</div>
+      <div class="sub">text-shadow: 0 0 20px gold/40%</div>
+      <div class="sub">Heading highlights</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="demo glass-demo"></div>
+    <div>
+      <div class="label">glass-surface</div>
+      <div class="sub">backdrop-filter: blur(20px)</div>
+      <div class="sub">Sticky nav, chat panel header</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="demo border-demo"></div>
+    <div>
+      <div class="label">primary/10 bg + primary/20 border</div>
+      <div class="sub">Info highlights, "why this film" box</div>
+    </div>
+  </div>
+</body>
+</html>
