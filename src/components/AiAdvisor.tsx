@@ -435,7 +435,7 @@ export const AiAdvisor = ({
                                       : 'border-border text-foreground bg-transparent hover:bg-secondary'
                                   }`}
                                 >
-                                  <Check className="w-4 h-4" />
+                                  <Star className={`w-4 h-4 ${inWatched ? 'fill-primary-foreground' : ''}`} />
                                 </button>
                                 <button
                                   onClick={() => onDismissMovie(movie)}

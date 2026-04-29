@@ -377,15 +377,30 @@ ${filters.some(f => f.includes("type=")) ? `КРИТИЧНО: фильтр ти�
 
     if (!raw) return jsonResponse(origin, 500, { error: "AI вернул пустой ответ" });
 
-    const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-    const jsonStr = (() => { const m = clean.match(/\{[\s\S]*\}/); return m ? m[0] : clean; })();
+    // Robust JSON extractor: find first syntactically complete JSON object
+    function extractFirstJson(text: string): Record<string, unknown> | null {
+      const s = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      try { return JSON.parse(s) as Record<string, unknown>; } catch { /* continue */ }
+      let depth = 0, start = -1;
+      for (let i = 0; i < s.length; i++) {
+        if (s[i] === "{") { if (start < 0) start = i; depth++; }
+        else if (s[i] === "}" && depth > 0) {
+          depth--;
+          if (depth === 0 && start >= 0) {
+            try { return JSON.parse(s.slice(start, i + 1)) as Record<string, unknown>; } catch { /* try next */ }
+            start = -1;
+          }
+        }
+      }
+      return null;
+    }
 
     let parsed: { reply?: string; suggestions?: unknown[] };
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
+    const extracted = extractFirstJson(raw);
+    if (!extracted) {
       return jsonResponse(origin, 200, { message: raw, suggestions: [] });
     }
+    parsed = extracted as { reply?: string; suggestions?: unknown[] };
 
     const reply = typeof parsed.reply === "string" ? parsed.reply.trim() : raw;
     const rawSuggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
