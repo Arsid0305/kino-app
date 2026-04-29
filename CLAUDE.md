@@ -4,6 +4,27 @@
 
 ---
 
+## ⚠️ ОБЯЗАТЕЛЬНО ПРИ ЛЮБЫХ UI-ПРАВКАХ
+
+**Перед изменением любого UI-компонента (карточки, кнопки, плашки, чипы, шапка, чат, формы)** — сначала прочитай соответствующий файл из папки `kino-design-system/preview/`:
+
+| Что меняешь | Файл в design system |
+|-------------|---------------------|
+| Карточка фильма (MovieCard, чат-карточки) | `component-cards.html` |
+| Кнопки (action buttons) | `component-buttons.html` |
+| Чипы (фильтры, теги жанров/настроений) | `component-chips.html` |
+| Шапка + табы + stat-карточки счётчиков | `component-nav.html` |
+| Чат-окно AI | `component-chat.html` |
+| Форма входа / OTP / профиль | `component-auth.html` |
+| Цвета, фоны, primary/secondary | `colors-base.html`, `colors-semantic.html` |
+| Шрифты (display/body) | `type-display.html`, `type-body.html` |
+| Тени, glow | `shadows-glow.html` |
+| Отступы | `spacing-tokens.html` |
+
+**Никогда не выдумывай UI с нуля.** Открой нужный файл, скопируй классы/токены, перевоплоти в Tailwind. Если пользователь говорит «как на телефоне» / «как было» / «не похоже» — точно нарушено это правило, иди в design system.
+
+---
+
 ## Инфраструктура (настроена, не трогать)
 
 ### Хостинг
