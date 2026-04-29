@@ -407,24 +407,27 @@ const Index = () => {
                 ))}
               </AnimatePresence>
 
-              <div className="flex flex-wrap gap-2 justify-center pt-1">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => setListModal('watchlist')}
-                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                  className="bg-secondary/60 border border-border rounded-xl py-2.5 px-2 text-center hover:border-primary/40 transition-colors"
                 >
-                  Буду смотреть: <strong className="text-foreground">{customMovies.length}</strong>
+                  <div className="font-display text-xl text-primary">{customMovies.length}</div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">Буду смотреть</div>
                 </button>
                 <button
                   onClick={() => setTab('history')}
-                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                  className="bg-secondary/60 border border-border rounded-xl py-2.5 px-2 text-center hover:border-primary/40 transition-colors"
                 >
-                  Просмотрено: <strong className="text-foreground">{watched.length}</strong>
+                  <div className="font-display text-xl text-primary">{watched.length}</div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">Просмотрено</div>
                 </button>
                 <button
                   onClick={() => setListModal('dismissed')}
-                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                  className="bg-secondary/60 border border-border rounded-xl py-2.5 px-2 text-center hover:border-primary/40 transition-colors"
                 >
-                  Исключено: <strong className="text-foreground">{dismissedMovies.length}</strong>
+                  <div className="font-display text-xl text-muted-foreground">{dismissedMovies.length}</div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5 leading-tight">Исключено</div>
                 </button>
               </div>
               {!session && (
