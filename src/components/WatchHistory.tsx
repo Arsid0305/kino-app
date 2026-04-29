@@ -4,9 +4,10 @@ import { Star, Clock } from 'lucide-react';
 
 interface WatchHistoryProps {
   watched: WatchedMovie[];
+  onReRate: (movie: WatchedMovie) => void;
 }
 
-export const WatchHistory = ({ watched }: WatchHistoryProps) => {
+export const WatchHistory = ({ watched, onReRate }: WatchHistoryProps) => {
   if (watched.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -24,7 +25,8 @@ export const WatchHistory = ({ watched }: WatchHistoryProps) => {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: i * 0.05 }}
-          className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border"
+          onClick={() => onReRate(movie)}
+          className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border cursor-pointer hover:border-primary/40 transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
             <span className="text-lg">🎬</span>
