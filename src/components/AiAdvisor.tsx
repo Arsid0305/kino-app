@@ -408,45 +408,45 @@ export const AiAdvisor = ({
                                 </div>
                               )}
 
-                              <div className="flex gap-2 pt-1">
+                              <div className="flex gap-3 pt-1">
                                 <a
-                                  href={`https://www.kinopoisk.ru/search/?text=${encodeURIComponent(movie.kpQuery || movie.titleRu)}`}
+                                  href={`https://yandex.ru/search/?text=${encodeURIComponent((movie.kpQuery || movie.titleRu) + ' фильм ' + (movie.year || ''))}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="px-3 py-2.5 rounded-xl border border-border text-muted-foreground text-xs font-medium"
-                                >КП</a>
+                                  className="px-4 py-3 rounded-xl border border-border text-muted-foreground text-sm font-medium"
+                                >Яндекс</a>
                                 <button
                                   onClick={() => onAddToWatchlist(movie)}
                                   disabled={inWatchlist}
-                                  className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-colors ${
+                                  className={`flex-1 py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                                     inWatchlist
                                       ? 'border-primary/30 bg-primary/10 text-primary cursor-default'
                                       : 'border-border text-foreground bg-transparent hover:bg-secondary'
                                   }`}
                                 >
-                                  <BookmarkPlus className="w-3.5 h-3.5" />
+                                  <BookmarkPlus className="w-4 h-4" />
                                   Буду смотреть
                                 </button>
                                 <button
                                   onClick={() => onRateMovie(movie)}
-                                  className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1 transition-colors ${
+                                  className={`px-4 py-3 rounded-xl border text-sm font-semibold flex items-center justify-center transition-colors ${
                                     inWatched
                                       ? 'border-primary bg-primary text-primary-foreground'
                                       : 'border-border text-foreground bg-transparent hover:bg-secondary'
                                   }`}
                                 >
-                                  <Check className="w-3.5 h-3.5" />
+                                  <Check className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={() => onDismissMovie(movie)}
                                   disabled={inDismissed}
-                                  className={`py-2.5 px-3 rounded-xl border text-xs transition-colors ${
+                                  className={`px-4 py-3 rounded-xl border text-sm flex items-center justify-center transition-colors ${
                                     inDismissed
                                       ? 'border-destructive/30 bg-destructive/10 text-destructive cursor-default'
                                       : 'border-border text-muted-foreground bg-transparent hover:bg-secondary'
                                   }`}
                                 >
-                                  <EyeOff className="w-3.5 h-3.5" />
+                                  <EyeOff className="w-4 h-4" />
                                 </button>
                               </div>
                             </div>
