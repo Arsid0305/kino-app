@@ -156,7 +156,7 @@ function excelRowToMovie(row: Record<string, any>): (Movie & { predictedRating?:
         title: titleOrig || title,
         titleRu: title,
         year,
-        type: type === 'TV_SERIES' ? 'series' : type === 'MINI_SERIES' ? 'miniseries' : 'film',
+        type: type === 'TV_SERIES' || type === 'MINI_SERIES' ? 'series' : 'film',
       },
       row['ID Кинопоиска'] || null,
     ),
@@ -173,7 +173,7 @@ function excelRowToMovie(row: Record<string, any>): (Movie & { predictedRating?:
     format,
     kpRating,
     country,
-    type: type === 'TV_SERIES' ? 'series' : type === 'MINI_SERIES' ? 'miniseries' : 'film',
+    type: type === 'TV_SERIES' || type === 'MINI_SERIES' ? 'series' : 'film',
   };
 }
 

@@ -10,30 +10,21 @@ const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 
 function getAllowedOrigins(): string[] {
-  return (Deno.env.get("ALLOWED_ORIGINS") ?? "")
-    .split(",")
-    .map(origin => origin.trim())
-    .filter(Boolean);
+  return (Deno.env.get("ALLOWED_ORIGINS") ?? "").split(",").map(o => o.trim()).filter(Boolean);
 }
 
 function isOriginAllowed(origin: string | null): boolean {
-  const allowedOrigins = getAllowedOrigins();
-  if (allowedOrigins.length === 0) return true;
+  const allowed = getAllowedOrigins();
+  if (allowed.length === 0) return true;
   if (!origin) return false;
-  return allowedOrigins.includes(origin);
+  return allowed.includes(origin);
 }
 
 function getCorsHeaders(origin: string | null) {
-  const allowedOrigins = getAllowedOrigins();
-  const allowOrigin = allowedOrigins.length === 0
-    ? "*"
-    : origin && allowedOrigins.includes(origin)
-    ? origin
-    : allowedOrigins[0];
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Headers": DEFAULT_ALLOWED_HEADERS,
-  };
+  const allowed = getAllowedOrigins();
+  const allowOrigin = allowed.length === 0 ? "*"
+    : origin && allowed.includes(origin) ? origin : allowed[0];
+  return { "Access-Control-Allow-Origin": allowOrigin, "Access-Control-Allow-Headers": DEFAULT_ALLOWED_HEADERS };
 }
 
 function jsonResponse(origin: string | null, status: number, payload: Record<string, unknown>) {
@@ -44,18 +35,16 @@ function jsonResponse(origin: string | null, status: number, payload: Record<str
 }
 
 function getClientIp(req: Request): string {
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  return req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip") ?? "unknown";
+  return req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+    ?? req.headers.get("cf-connecting-ip")
+    ?? req.headers.get("x-real-ip")
+    ?? "unknown";
 }
 
 function checkRateLimit(key: string): boolean {
   const now = Date.now();
   const limit = rateLimits.get(key);
-  if (!limit || now > limit.resetAt) {
-    rateLimits.set(key, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
+  if (!limit || now > limit.resetAt) { rateLimits.set(key, { count: 1, resetAt: now + 60_000 }); return true; }
   if (limit.count >= MAX_REQUESTS_PER_MINUTE) return false;
   limit.count++;
   return true;
@@ -84,9 +73,7 @@ serve(async req => {
     if (!isOriginAllowed(origin)) return jsonResponse(origin, 403, { error: "Origin is not allowed" });
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse(origin, 401, { error: "Требуется авторизация" });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return jsonResponse(origin, 401, { error: "Требуется авторизация" });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -99,9 +86,7 @@ serve(async req => {
     if (authError || !user) return jsonResponse(origin, 401, { error: "Неверный токен доступа" });
 
     const rateLimitKey = `${user.id}:${getClientIp(req)}`;
-    if (!checkRateLimit(rateLimitKey)) {
-      return jsonResponse(origin, 429, { error: "Слишком много запросов. Подождите минуту." });
-    }
+    if (!checkRateLimit(rateLimitKey)) return jsonResponse(origin, 429, { error: "Слишком много запросов. Подождите минуту." });
 
     const body = await req.json().catch(() => null) as {
       filters?: unknown;
@@ -111,9 +96,7 @@ serve(async req => {
       dismissedMovies?: unknown;
     } | null;
 
-    if (!body || typeof body !== "object") {
-      return jsonResponse(origin, 400, { error: "Некорректное тело запроса" });
-    }
+    if (!body || typeof body !== "object") return jsonResponse(origin, 400, { error: "Некорректное тело запроса" });
 
     const filters = Array.isArray(body.filters) ? body.filters.map(String).slice(0, 12) : [];
     const tasteProfile = typeof body.tasteProfile === "string" ? body.tasteProfile.slice(0, 6000) : "";
@@ -128,16 +111,26 @@ serve(async req => {
     if (!DEEPSEEK_API_KEY) throw new Error("DEEPSEEK_API_KEY is not configured");
     const DEEPSEEK_MODEL = Deno.env.get("DEEPSEEK_MODEL") ?? DEFAULT_DEEPSEEK_MODEL;
 
-    // Cap each forbidden segment to 40 titles to keep the prompt manageable
     const watchedTitles = titlesOf(watchedMovies.slice(0, 40));
     const watchlistTitles = titlesOf(watchlistMovies.slice(0, 40));
     const dismissedTitles = titlesOf(dismissedMovies.slice(0, 40));
+
+    // Build a title-based forbidden set for server-side filtering
+    const forbiddenTitleSet = new Set<string>(
+      [
+        ...(watchedMovies as MovieCtx[]),
+        ...(watchlistMovies as MovieCtx[]),
+        ...(dismissedMovies as MovieCtx[]),
+      ]
+        .map(m => (m.titleRu ?? m.title ?? "").toLowerCase().trim())
+        .filter(Boolean)
+    );
 
     const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
       const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
         .filter(Boolean).join(", ");
 
-      const body = JSON.stringify({
+      const msgBody = JSON.stringify({
         model: DEEPSEEK_MODEL,
         messages: [
           {
@@ -146,9 +139,12 @@ serve(async req => {
           },
           {
             role: "user",
-            content: `Порекомендуй ОДИН фильм или сериал, которого НЕТ в списке ниже.
+            content: `Порекомендуй ОДИН фильм или сериал, которого СТРОГО НЕТ в списке ниже.
 
-ЗАПРЕЩЁННЫЕ (не предлагать ни при каких условиях): ${forbidden || "нет"}
+ЗАПРЕЩЁННЫЕ (АБСОЛЮТНЫЙ ЗАПРЕТ, ни при каких условиях не предлагать): ${forbidden || "нет"}
+
+Это критически важно: если фильм есть в списке ЗАПРЕЩЁННЫХ — его нельзя рекомендовать НИКОГДА.
+Предложи что-то ДРУГОЕ, не из этого списка.
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
@@ -159,22 +155,18 @@ serve(async req => {
         ],
         stream: false,
         max_tokens: 800,
-        temperature: 1.0,
+        temperature: 1.2,
       });
 
-      // Retry once on transient failures (JSON parse errors, 5xx)
       for (let attempt = 0; attempt < 2; attempt++) {
         const res = await fetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body,
+          headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
+          body: msgBody,
         });
 
         if (!res.ok) {
-          if (res.status === 429) throw new Error(`DeepSeek 429`);
+          if (res.status === 429) throw new Error("DeepSeek 429");
           if (attempt === 1) throw new Error(`DeepSeek ${res.status}`);
           continue;
         }
@@ -187,7 +179,6 @@ serve(async req => {
           return Array.isArray(parsed) ? parsed[0] : parsed;
         } catch {
           if (attempt === 1) throw new Error(`JSON parse failed: ${clean.slice(0, 100)}`);
-          // retry
         }
       }
       throw new Error("callOnce exhausted retries");
@@ -198,16 +189,31 @@ serve(async req => {
       try {
         const alreadyShown = picked.map(m => (m.titleRu ?? m.title ?? "") as string).join(", ");
         const movie = await callOnce(alreadyShown);
-        picked.push(movie);
+
+        // Server-side check: skip if title is in forbidden set
+        const titleRu = typeof movie.titleRu === "string" ? movie.titleRu.toLowerCase().trim() : "";
+        const title = typeof movie.title === "string" ? movie.title.toLowerCase().trim() : "";
+        if (forbiddenTitleSet.has(titleRu) || forbiddenTitleSet.has(title)) {
+          console.log(`Filtered out forbidden recommendation: ${movie.titleRu ?? movie.title}`);
+          // Try one more time
+          const retry = await callOnce(
+            [alreadyShown, movie.titleRu ?? movie.title ?? ""].filter(Boolean).join(", ")
+          );
+          const retryTitleRu = typeof retry.titleRu === "string" ? retry.titleRu.toLowerCase().trim() : "";
+          const retryTitle = typeof retry.title === "string" ? retry.title.toLowerCase().trim() : "";
+          if (!forbiddenTitleSet.has(retryTitleRu) && !forbiddenTitleSet.has(retryTitle)) {
+            picked.push(retry);
+          }
+        } else {
+          picked.push(movie);
+        }
         console.log(`Recommendation ${i + 1}: ${movie.titleRu ?? movie.title}`);
       } catch (e) {
         console.error(`DeepSeek call ${i + 1} failed:`, e);
       }
     }
 
-    if (picked.length === 0) {
-      return jsonResponse(origin, 500, { error: "Не удалось получить рекомендации" });
-    }
+    if (picked.length === 0) return jsonResponse(origin, 500, { error: "Не удалось получить рекомендации" });
 
     return jsonResponse(origin, 200, { recommendations: picked });
 

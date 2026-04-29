@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
 import { Clapperboard, History, Sparkles } from 'lucide-react';
@@ -10,7 +10,6 @@ import { WatchHistory } from '@/components/WatchHistory';
 import { FileUpload } from '@/components/FileUpload';
 import { AiAdvisor } from '@/components/AiAdvisor';
 import { AuthPanel } from '@/components/AuthPanel';
-import { MovieListSheet } from '@/components/MovieListSheet';
 import { ParseResult } from '@/lib/fileParser';
 import {
   FilterState,
@@ -34,29 +33,11 @@ import {
   upsertDismissedMovie,
   upsertWatchedMovie,
   upsertWatchlistMovie,
-  batchUpsertImport,
+  upsertWatchlistMovies,
 } from '@/lib/supabaseMovieStore';
 import { requestGlobalRecommendation } from '@/lib/globalRecommendation';
 
 type Tab = 'recommend' | 'history';
-
-// Safari and iOS PWA share cookies but have isolated localStorage.
-// We store just the access_token + refresh_token (both ASCII) in two small
-// cookies so the PWA can restore a session that was established in Safari
-// (e.g. after Google OAuth redirect).
-const cookieExp = () => new Date(Date.now() + 30 * 86400000).toUTCString();
-const saveCookieTokens = (at: string, rt: string) => {
-  document.cookie = `kino_at=${btoa(at)}; expires=${cookieExp()}; path=/`;
-  document.cookie = `kino_rt=${btoa(rt)}; expires=${cookieExp()}; path=/`;
-};
-const readCookie = (name: string): string | null => {
-  const m = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]+)`));
-  try { return m ? atob(m[1]) : null; } catch { return null; }
-};
-const clearCookieTokens = () => {
-  document.cookie = 'kino_at=; path=/; max-age=0';
-  document.cookie = 'kino_rt=; path=/; max-age=0';
-};
 
 const loadLocalArray = <T,>(key: string): T[] => {
   try {
@@ -86,60 +67,17 @@ const Index = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [syncStatus, setSyncStatus] = useState('Локальный режим');
   const [loadingRecommendation, setLoadingRecommendation] = useState(false);
-  const [movieListSheet, setMovieListSheet] = useState<'watchlist' | 'dismissed' | null>(null);
-  const watchedRef = useRef(watched);
-  const customMoviesRef = useRef(customMovies);
-  const dismissedMoviesRef = useRef(dismissedMovies);
-  useEffect(() => { watchedRef.current = watched; }, [watched]);
-  useEffect(() => { customMoviesRef.current = customMovies; }, [customMovies]);
-  useEffect(() => { dismissedMoviesRef.current = dismissedMovies; }, [dismissedMovies]);
 
   useEffect(() => {
-    // onAuthStateChange fires INITIAL_SESSION when the listener is registered.
-    // When Google OAuth redirects back to Safari, Supabase processes the URL
-    // hash and the session surfaces via INITIAL_SESSION (not SIGNED_IN) because
-    // the listener is set up after initialization. We save AT+RT to cookies on
-    // every event that carries a session so the PWA can restore it.
-    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      if (nextSession && event !== 'SIGNED_OUT') {
-        saveCookieTokens(nextSession.access_token, nextSession.refresh_token);
-      } else if (event === 'SIGNED_OUT') {
-        clearCookieTokens();
-      }
+    void supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
     });
 
-    // If no session in localStorage (PWA context after Safari auth), restore
-    // using the refresh_token cookie that Safari saved.
-    const restoreFromCookies = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) { setSession(session); return; }
-      const rt = readCookie('kino_rt');
-      if (!rt) return;
-      const { error } = await supabase.auth.refreshSession({ refresh_token: rt });
-      if (error) clearCookieTokens();
-    };
-    void restoreFromCookies();
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
 
-    // iOS PWA: re-check session when app comes back to foreground.
-    // If getSession returns null (e.g. token expired while backgrounded),
-    // fall back to the cookie refresh_token before giving up.
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
-      supabase.auth.getSession().then(async ({ data }) => {
-        if (data.session) { setSession(data.session); return; }
-        const rt = readCookie('kino_rt');
-        if (!rt) return;
-        const { error } = await supabase.auth.refreshSession({ refresh_token: rt });
-        if (error) clearCookieTokens();
-      });
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      data.subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
+    return () => data.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -172,7 +110,7 @@ const Index = () => {
           return;
         }
 
-        await seedCloudLibrary(watchedRef.current, customMoviesRef.current, dismissedMoviesRef.current);
+        await seedCloudLibrary(watched, customMovies, dismissedMovies);
         if (cancelled) return;
         setSyncStatus('Локальная база загружена в Supabase');
       } catch (error) {
@@ -188,7 +126,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [session, watched, customMovies, dismissedMovies]);
 
   const updateFilter = (key: keyof FilterState) => (value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -212,12 +150,14 @@ const Index = () => {
 
     if (session) {
       try {
-        await batchUpsertImport(result.watched, result.toWatch);
+        await Promise.all([
+          result.watched.length > 0 ? Promise.all(result.watched.map(movie => upsertWatchedMovie(movie))) : Promise.resolve(),
+          result.toWatch.length > 0 ? upsertWatchlistMovies(result.toWatch) : Promise.resolve(),
+        ]);
         setSyncStatus('Импорт синхронизирован с Supabase');
       } catch (error) {
-        console.error('batchUpsertImport failed:', JSON.stringify(error));
-        const msg = error instanceof Error ? error.message : JSON.stringify(error);
-        toast.error(`Ошибка синхронизации: ${msg}`);
+        console.error(error);
+        toast.error(error instanceof Error ? error.message : 'Не удалось синхронизировать импорт');
       }
     }
   };
@@ -228,14 +168,7 @@ const Index = () => {
     try {
       if (session) {
         const aiMovies = await requestGlobalRecommendation(filters, watched, customMovies, dismissedMovies);
-        // Filter out movies the user already watched, has in watchlist, or dismissed
-        const excludedKeys = new Set([
-          ...watched.map(getMovieDedupKey),
-          ...customMovies.map(getMovieDedupKey),
-          ...dismissedMovies.map(getMovieDedupKey),
-        ]);
-        const fresh = aiMovies.filter(m => !excludedKeys.has(getMovieDedupKey(m)));
-        setRecommendations(fresh.length > 0 ? fresh : aiMovies);
+        setRecommendations(aiMovies);
         return;
       }
 
@@ -333,10 +266,12 @@ const Index = () => {
     }
   };
 
-  const handleSendCode = async (email: string) => {
+  const handleSendMagicLink = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true },
+      options: {
+        emailRedirectTo: window.location.origin,
+      },
     });
 
     if (error) {
@@ -344,18 +279,7 @@ const Index = () => {
       throw error;
     }
 
-    toast.success('Код отправлен на email');
-  };
-
-  const handleVerifyCode = async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
-
-    if (error) {
-      toast.error(error.message);
-      throw error;
-    }
-
-    toast.success('Вход выполнен');
+    toast.success('Письмо со ссылкой для входа отправлено');
   };
 
   const handleSignOut = async () => {
@@ -381,7 +305,9 @@ const Index = () => {
             </div>
             <div>
               <h1 className="font-display text-2xl text-foreground tracking-wide">КИНО</h1>
-              <p className="text-[10px] text-muted-foreground">Глобальный AI подбор</p>
+              <p className="text-[10px] text-muted-foreground">
+                {session ? 'Глобальный AI-подбор + cloud sync' : 'Локальный режим, войди для cloud sync'}
+              </p>
             </div>
           </div>
           <div className="flex bg-secondary rounded-xl p-1">
@@ -411,8 +337,7 @@ const Index = () => {
         <AuthPanel
           session={session}
           syncStatus={syncStatus}
-          onSendCode={handleSendCode}
-          onVerifyCode={handleVerifyCode}
+          onSendLink={handleSendMagicLink}
           onSignOut={handleSignOut}
         />
 
@@ -433,6 +358,16 @@ const Index = () => {
               <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
 
+              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
+
+              <div className="text-xs text-muted-foreground text-center space-y-0.5">
+                <p>Буду смотреть: {customMovies.length}</p>
+                <p>Просмотрено и оценено: {watched.length}</p>
+                <p>Исключено из подборов: {dismissedMovies.length}</p>
+                {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
+                {!session && <p>Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.</p>}
+              </div>
+
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void getMovie()}
@@ -443,7 +378,11 @@ const Index = () => {
                     : 'bg-secondary text-muted-foreground'
                 } disabled:opacity-60`}
               >
-                {loadingRecommendation ? 'ИЩУ ФИЛЬМ...' : 'ПОДОБРАТЬ ФИЛЬМ'}
+                {loadingRecommendation
+                  ? 'ИЩУ ФИЛЬМ...'
+                  : session
+                  ? 'ПОДОБРАТЬ ФИЛЬМ'
+                  : 'ПОДОБРАТЬ ФИЛЬМ'}
               </motion.button>
 
               <AnimatePresence>
@@ -451,10 +390,7 @@ const Index = () => {
                   <MovieCard
                     key={movie.id}
                     movie={movie}
-                    onRate={m => {
-                      void handleAddToWatchlist(m);
-                      setRecommendations(prev => prev.filter(r => r.id !== m.id));
-                    }}
+                    onRate={m => setRatingMovie(m)}
                     onSkip={() => {
                       void handleDismissMovie(movie);
                       const remaining = recommendations.filter(r => r.id !== movie.id);
@@ -464,32 +400,6 @@ const Index = () => {
                   />
                 ))}
               </AnimatePresence>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setMovieListSheet('watchlist')}
-                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
-                >
-                  <span className="text-lg font-display text-primary">{customMovies.length}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Буду смотреть</span>
-                </button>
-                <button
-                  onClick={() => setTab('history')}
-                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
-                >
-                  <span className="text-lg font-display text-primary">{watched.length}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Просмотрено</span>
-                </button>
-                <button
-                  onClick={() => setMovieListSheet('dismissed')}
-                  className="flex flex-col items-center gap-1 bg-secondary/60 border border-border rounded-xl py-3 px-2 hover:border-primary/40 transition-colors"
-                >
-                  <span className="text-lg font-display text-muted-foreground">{dismissedMovies.length}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight text-center">Исключено</span>
-                </button>
-              </div>
-
-              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
             </motion.div>
           ) : (
             <motion.div
@@ -498,11 +408,21 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <WatchHistory watched={watched} onReRate={movie => setRatingMovie(movie)} />
+              <WatchHistory watched={watched} />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence>
+        {ratingMovie && (
+          <RatingModal
+            movie={ratingMovie}
+            onSubmit={(rating, notes) => void handleRate(rating, notes)}
+            onClose={() => setRatingMovie(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <AiAdvisor
         session={session}
@@ -514,28 +434,6 @@ const Index = () => {
         onRateMovie={movie => setRatingMovie(movie)}
         onDismissMovie={movie => void handleDismissMovie(movie)}
       />
-
-      <MovieListSheet
-        open={movieListSheet !== null}
-        onClose={() => setMovieListSheet(null)}
-        movies={movieListSheet === 'watchlist' ? customMovies : dismissedMovies}
-        mode={movieListSheet ?? 'watchlist'}
-        onRate={movie => setRatingMovie(movie)}
-        onRestore={movie => {
-          const key = getMovieDedupKey(movie);
-          setDismissedMovies(prev => prev.filter(m => getMovieDedupKey(m) !== key));
-        }}
-      />
-
-      <AnimatePresence>
-        {ratingMovie && (
-          <RatingModal
-            movie={ratingMovie}
-            onSubmit={(rating, notes) => void handleRate(rating, notes)}
-            onClose={() => setRatingMovie(null)}
-          />
-        )}
-      </AnimatePresence>
     </div>
   );
 };

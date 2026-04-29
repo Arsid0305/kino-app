@@ -13,9 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-    // Implicit flow: tokens come back in the URL hash directly.
-    // PKCE (default) stores a verifier in PWA localStorage, but the OAuth
-    // callback opens in Safari with separate localStorage — verifier is lost.
-    flowType: 'implicit',
   }
 });
