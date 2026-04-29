@@ -98,7 +98,7 @@ async function getCurrentUserId() {
   return data.user.id;
 }
 
-async function removeFromCloudLists(movieKey: string, listTypes: CloudMovieListType[]) {
+export async function removeFromCloudLists(movieKey: string, listTypes: CloudMovieListType[]) {
   if (listTypes.length === 0) return;
 
   const { error } = await supabase
