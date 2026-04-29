@@ -88,26 +88,34 @@ async function callGemini(
     }
   }
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        tools: [{ google_search: {} }],
-        generationConfig: { maxOutputTokens: 3000, temperature: 1.0 },
-      }),
-    },
-  );
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
-  const d = await res.json() as {
-    candidates?: { content?: { parts?: { text?: string }[] } }[];
-  };
-  // Google Search grounding may return multiple parts — collect all text parts
-  const parts = d.candidates?.[0]?.content?.parts ?? [];
-  return parts.map(p => p.text ?? "").join("").trim();
+  const body = JSON.stringify({
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents,
+    tools: [{ google_search: {} }],
+    generationConfig: { maxOutputTokens: 3000, temperature: 1.0 },
+  });
+
+  // Retry with exponential backoff on 503 (overloaded) — common during peak demand
+  const delays = [0, 1000, 2500];
+  let lastError = "";
+  for (const delay of delays) {
+    if (delay > 0) await new Promise(r => setTimeout(r, delay));
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body },
+    );
+    if (res.ok) {
+      const d = await res.json() as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const parts = d.candidates?.[0]?.content?.parts ?? [];
+      return parts.map(p => p.text ?? "").join("").trim();
+    }
+    lastError = `Gemini ${res.status}: ${await res.text()}`;
+    // Only retry on 503 / 429 (transient)
+    if (res.status !== 503 && res.status !== 429) break;
+  }
+  throw new Error(lastError || "Gemini failed after retries");
 }
 
 async function callProvider(
