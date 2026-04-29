@@ -34,7 +34,8 @@ async function callOpenAICompat(
       model,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
       ...tokenParam,
-      temperature: 1.0,
+      temperature: 0.7,
+      response_format: { type: "json_object" },
     }),
   });
   if (!res.ok) throw new Error(`${baseUrl} ${res.status}: ${await res.text()}`);
