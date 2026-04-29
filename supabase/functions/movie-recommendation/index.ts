@@ -140,15 +140,15 @@ serve(async req => {
           },
           {
             role: "user",
-            content: `Порекомендуй РОВНО 2 фильма или сериала, похожих по духу и стилю. Оба строго отсутствуют в списке ЗАПРЕЩЁННЫХ.
+            content: `Порекомендуй РОВНО 3 фильма или сериала, похожих по духу и стилю. Все три строго отсутствуют в списке ЗАПРЕЩЁННЫХ.
 
 ЗАПРЕЩЁННЫЕ (абсолютный запрет): ${forbidden || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
 
-Верни ТОЛЬКО JSON-объект с массивом из 2 элементов:
-{"recommendations":[{"title":"...","titleRu":"...","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0},{"title":"...","titleRu":"...","year":2018,"type":"film","genres":["другой жанр"],"duration":95,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.2,"country":"Франция","predictedRating":7.8}]}`,
+Верни ТОЛЬКО JSON-объект с массивом из 3 элементов:
+{"recommendations":[{"title":"...","titleRu":"...","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0},{"title":"...","titleRu":"...","year":2018,"type":"film","genres":["жанр"],"duration":95,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.2,"country":"Франция","predictedRating":7.8},{"title":"...","titleRu":"...","year":2016,"type":"film","genres":["жанр"],"duration":110,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.0,"country":"Великобритания","predictedRating":7.5}]}`,
           },
         ],
         stream: false,
@@ -186,13 +186,14 @@ serve(async req => {
     };
 
     const rawResults = await callForTwo();
+    // Filter forbidden, then take up to 2 (we asked for 3 as buffer)
     const picked = rawResults.filter(movie => {
       const titleRu = typeof movie.titleRu === "string" ? movie.titleRu.toLowerCase().trim() : "";
       const title = typeof movie.title === "string" ? movie.title.toLowerCase().trim() : "";
       const allowed = !forbiddenTitleSet.has(titleRu) && !forbiddenTitleSet.has(title);
       if (!allowed) console.log(`Filtered out forbidden: ${movie.titleRu ?? movie.title}`);
       return allowed;
-    });
+    }).slice(0, 2);
 
     if (picked.length === 0) return jsonResponse(origin, 500, { error: "Не удалось получить рекомендации" });
 

@@ -27,16 +27,18 @@ async function callOpenAICompat(
   const tokenParam = useCompletionTokens
     ? { max_completion_tokens: 3000 }
     : { max_tokens: 3000 };
+  const body: Record<string, unknown> = {
+    model,
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
+    ...tokenParam,
+    response_format: { type: "json_object" },
+  };
+  // o1/o3/o4 models (useCompletionTokens=true) don't support temperature
+  if (!useCompletionTokens) body.temperature = 0.7;
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      ...tokenParam,
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${baseUrl} ${res.status}: ${await res.text()}`);
   const d = await res.json() as { choices?: { message?: { content?: string } }[] };

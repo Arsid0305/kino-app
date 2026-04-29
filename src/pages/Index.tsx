@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
 import { Clapperboard, History, Sparkles } from 'lucide-react';
@@ -293,11 +293,23 @@ const Index = () => {
     toast.success('Вы вышли из облачного аккаунта');
   };
 
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const hasFilters = Object.values(filters).some(Boolean);
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-40 glass-surface border-b border-border">
+      <div ref={headerRef} className="sticky top-0 z-40 glass-surface border-b border-border">
         <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
@@ -305,9 +317,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="font-display text-2xl text-foreground tracking-wide">КИНО</h1>
-              <p className="text-[10px] text-muted-foreground">
-                {session ? 'Глобальный AI-подбор + cloud sync' : 'Локальный режим, войди для cloud sync'}
-              </p>
+              <p className="text-[10px] text-muted-foreground">Глобальный AI подбор</p>
             </div>
           </div>
           <div className="flex bg-secondary rounded-xl p-1">
