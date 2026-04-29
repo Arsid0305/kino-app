@@ -11,7 +11,7 @@ const MAX_MOVIES = 30;
 const MAX_REQUESTS_PER_MINUTE = 10;
 const DEFAULT_DEEPSEEK_MODEL = "deepseek-chat";
 const DEFAULT_OPENAI_MODEL = "gpt-4o";
-const DEFAULT_GEMINI_MODEL = "gemini-2.0-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6";
 
 type Provider = "deepseek" | "gpt4o" | "gemini" | "claude";
@@ -73,10 +73,17 @@ async function callGemini(
   systemPrompt: string,
   messages: ChatMessage[],
 ): Promise<string> {
-  const contents = messages.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: [{ text: m.content }],
-  }));
+  // Gemini doesn't allow consecutive same-role messages — merge them
+  const contents: { role: string; parts: { text: string }[] }[] = [];
+  for (const m of messages) {
+    const role = m.role === "assistant" ? "model" : "user";
+    const last = contents[contents.length - 1];
+    if (last && last.role === role) {
+      last.parts[0].text += "\n" + m.content;
+    } else {
+      contents.push({ role, parts: [{ text: m.content }] });
+    }
+  }
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -95,7 +102,9 @@ async function callGemini(
   const d = await res.json() as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
-  return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  // Google Search grounding may return multiple parts — collect all text parts
+  const parts = d.candidates?.[0]?.content?.parts ?? [];
+  return parts.map(p => p.text ?? "").join("").trim();
 }
 
 async function callProvider(
