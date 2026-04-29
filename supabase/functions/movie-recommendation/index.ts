@@ -126,39 +126,37 @@ serve(async req => {
         .filter(Boolean)
     );
 
-    const callOnce = async (alreadyShown: string): Promise<Record<string, unknown>> => {
-      const forbidden = [watchedTitles, watchlistTitles, dismissedTitles, alreadyShown]
+    const callForTwo = async (): Promise<Record<string, unknown>[]> => {
+      const forbidden = [watchedTitles, watchlistTitles, dismissedTitles]
         .filter(Boolean).join(", ");
 
       const msgBody = JSON.stringify({
         model: DEEPSEEK_MODEL,
+        response_format: { type: "json_object" },
         messages: [
           {
             role: "system",
-            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON-объектом без markdown, без пояснений, без лишнего текста.",
+            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON без markdown, без пояснений.",
           },
           {
             role: "user",
-            content: `Порекомендуй ОДИН фильм или сериал, которого СТРОГО НЕТ в списке ниже.
+            content: `Порекомендуй РОВНО 2 фильма или сериала из РАЗНЫХ жанров. Оба строго отсутствуют в списке ЗАПРЕЩЁННЫХ.
 
-ЗАПРЕЩЁННЫЕ (АБСОЛЮТНЫЙ ЗАПРЕТ, ни при каких условиях не предлагать): ${forbidden || "нет"}
-
-Это критически важно: если фильм есть в списке ЗАПРЕЩЁННЫХ — его нельзя рекомендовать НИКОГДА.
-Предложи что-то ДРУГОЕ, не из этого списка.
+ЗАПРЕЩЁННЫЕ (абсолютный запрет): ${forbidden || "нет"}
 
 Фильтры: ${filters.length > 0 ? filters.join(", ") : "без ограничений"}
 Вкусовой профиль: ${tasteProfile || "пуст"}
 
-Верни ТОЛЬКО JSON-объект (без массива, без пояснений):
-{"title":"Название","titleRu":"Русское название","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"Режиссёр","description":"Синопсис 2-3 предложения","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0}`,
+Верни ТОЛЬКО JSON-объект с массивом из 2 элементов:
+{"recommendations":[{"title":"...","titleRu":"...","year":2020,"type":"film","genres":["жанр"],"duration":100,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.5,"country":"США","predictedRating":8.0},{"title":"...","titleRu":"...","year":2018,"type":"film","genres":["другой жанр"],"duration":95,"director":"...","description":"Синопсис","reasonToWatch":"Почему подходит","mood":["настроение"],"timeOfDay":["evening"],"format":"medium","forCompany":"any","kpRating":7.2,"country":"Франция","predictedRating":7.8}]}`,
           },
         ],
         stream: false,
-        max_tokens: 800,
+        max_tokens: 1600,
         temperature: 1.2,
       });
 
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 3; attempt++) {
         const res = await fetch("https://api.deepseek.com/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${DEEPSEEK_API_KEY}`, "Content-Type": "application/json" },
@@ -167,7 +165,7 @@ serve(async req => {
 
         if (!res.ok) {
           if (res.status === 429) throw new Error("DeepSeek 429");
-          if (attempt === 1) throw new Error(`DeepSeek ${res.status}`);
+          if (attempt === 2) throw new Error(`DeepSeek ${res.status}`);
           continue;
         }
 
@@ -175,43 +173,26 @@ serve(async req => {
         const raw = d.choices?.[0]?.message?.content?.trim() ?? "";
         const clean = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
         try {
-          const parsed = JSON.parse(clean);
-          return Array.isArray(parsed) ? parsed[0] : parsed;
+          const parsed = JSON.parse(clean) as Record<string, unknown>;
+          const arr = Array.isArray(parsed.recommendations) ? parsed.recommendations as Record<string, unknown>[]
+            : Array.isArray(parsed) ? parsed as Record<string, unknown>[]
+            : [parsed];
+          return arr;
         } catch {
-          if (attempt === 1) throw new Error(`JSON parse failed: ${clean.slice(0, 100)}`);
+          if (attempt === 2) throw new Error(`JSON parse failed: ${clean.slice(0, 100)}`);
         }
       }
-      throw new Error("callOnce exhausted retries");
+      throw new Error("callForTwo exhausted retries");
     };
 
-    const picked: Record<string, unknown>[] = [];
-    for (let i = 0; i < 2; i++) {
-      try {
-        const alreadyShown = picked.map(m => (m.titleRu ?? m.title ?? "") as string).join(", ");
-        const movie = await callOnce(alreadyShown);
-
-        // Server-side check: skip if title is in forbidden set
-        const titleRu = typeof movie.titleRu === "string" ? movie.titleRu.toLowerCase().trim() : "";
-        const title = typeof movie.title === "string" ? movie.title.toLowerCase().trim() : "";
-        if (forbiddenTitleSet.has(titleRu) || forbiddenTitleSet.has(title)) {
-          console.log(`Filtered out forbidden recommendation: ${movie.titleRu ?? movie.title}`);
-          // Try one more time
-          const retry = await callOnce(
-            [alreadyShown, movie.titleRu ?? movie.title ?? ""].filter(Boolean).join(", ")
-          );
-          const retryTitleRu = typeof retry.titleRu === "string" ? retry.titleRu.toLowerCase().trim() : "";
-          const retryTitle = typeof retry.title === "string" ? retry.title.toLowerCase().trim() : "";
-          if (!forbiddenTitleSet.has(retryTitleRu) && !forbiddenTitleSet.has(retryTitle)) {
-            picked.push(retry);
-          }
-        } else {
-          picked.push(movie);
-        }
-        console.log(`Recommendation ${i + 1}: ${movie.titleRu ?? movie.title}`);
-      } catch (e) {
-        console.error(`DeepSeek call ${i + 1} failed:`, e);
-      }
-    }
+    const rawResults = await callForTwo();
+    const picked = rawResults.filter(movie => {
+      const titleRu = typeof movie.titleRu === "string" ? movie.titleRu.toLowerCase().trim() : "";
+      const title = typeof movie.title === "string" ? movie.title.toLowerCase().trim() : "";
+      const allowed = !forbiddenTitleSet.has(titleRu) && !forbiddenTitleSet.has(title);
+      if (!allowed) console.log(`Filtered out forbidden: ${movie.titleRu ?? movie.title}`);
+      return allowed;
+    });
 
     if (picked.length === 0) return jsonResponse(origin, 500, { error: "Не удалось получить рекомендации" });
 

@@ -358,16 +358,6 @@ const Index = () => {
               <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
 
-              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
-
-              <div className="text-xs text-muted-foreground text-center space-y-0.5">
-                <p>Буду смотреть: {customMovies.length}</p>
-                <p>Просмотрено и оценено: {watched.length}</p>
-                <p>Исключено из подборов: {dismissedMovies.length}</p>
-                {session && <p>Рекомендация идет по всему каталогу, а список к просмотру и оценки используются как персональный сигнал.</p>}
-                {!session && <p>Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.</p>}
-              </div>
-
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void getMovie()}
@@ -378,11 +368,7 @@ const Index = () => {
                     : 'bg-secondary text-muted-foreground'
                 } disabled:opacity-60`}
               >
-                {loadingRecommendation
-                  ? 'ИЩУ ФИЛЬМ...'
-                  : session
-                  ? 'ПОДОБРАТЬ ФИЛЬМ'
-                  : 'ПОДОБРАТЬ ФИЛЬМ'}
+                {loadingRecommendation ? 'ИЩУ ФИЛЬМ...' : 'ПОДОБРАТЬ ФИЛЬМ'}
               </motion.button>
 
               <AnimatePresence>
@@ -400,6 +386,25 @@ const Index = () => {
                   />
                 ))}
               </AnimatePresence>
+
+              <div className="flex flex-wrap gap-2 justify-center pt-1">
+                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                  Буду смотреть: <strong className="text-foreground">{customMovies.length}</strong>
+                </span>
+                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                  Просмотрено: <strong className="text-foreground">{watched.length}</strong>
+                </span>
+                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                  Исключено: <strong className="text-foreground">{dismissedMovies.length}</strong>
+                </span>
+              </div>
+              {!session && (
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Без подключения используется встроенная база из {MOVIE_DATABASE.length} фильмов.
+                </p>
+              )}
+
+              <FileUpload onMoviesLoaded={result => void handleMoviesLoaded(result)} />
             </motion.div>
           ) : (
             <motion.div
