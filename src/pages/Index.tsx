@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
-import { Clapperboard, History, Sparkles } from 'lucide-react';
+import { Clapperboard, History, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FilterSection } from '@/components/FilterSection';
 import { MovieCard } from '@/components/MovieCard';
@@ -293,6 +293,7 @@ const Index = () => {
     toast.success('Вы вышли из облачного аккаунта');
   };
 
+  const [listModal, setListModal] = useState<'watchlist' | 'dismissed' | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -398,15 +399,24 @@ const Index = () => {
               </AnimatePresence>
 
               <div className="flex flex-wrap gap-2 justify-center pt-1">
-                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                <button
+                  onClick={() => setListModal('watchlist')}
+                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                >
                   Буду смотреть: <strong className="text-foreground">{customMovies.length}</strong>
-                </span>
-                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                </button>
+                <button
+                  onClick={() => setTab('history')}
+                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                >
                   Просмотрено: <strong className="text-foreground">{watched.length}</strong>
-                </span>
-                <span className="px-3 py-1 rounded-full bg-secondary text-xs text-muted-foreground">
+                </button>
+                <button
+                  onClick={() => setListModal('dismissed')}
+                  className="px-3.5 py-2 rounded-xl border border-border bg-secondary text-sm font-medium text-muted-foreground hover:border-primary/40 transition-colors"
+                >
                   Исключено: <strong className="text-foreground">{dismissedMovies.length}</strong>
-                </span>
+                </button>
               </div>
               {!session && (
                 <p className="text-[11px] text-muted-foreground text-center">
@@ -436,6 +446,48 @@ const Index = () => {
             onSubmit={(rating, notes) => void handleRate(rating, notes)}
             onClose={() => setRatingMovie(null)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {listModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-end justify-center"
+            onClick={() => setListModal(null)}
+          >
+            <motion.div
+              initial={{ y: 60 }}
+              animate={{ y: 0 }}
+              exit={{ y: 60 }}
+              className="bg-card border border-border rounded-t-2xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+                <h3 className="font-display text-lg text-foreground">
+                  {listModal === 'watchlist' ? `Буду смотреть (${customMovies.length})` : `Исключено (${dismissedMovies.length})`}
+                </h3>
+                <button onClick={() => setListModal(null)} className="text-muted-foreground">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="overflow-y-auto p-3 space-y-2">
+                {(listModal === 'watchlist' ? customMovies : dismissedMovies).map(movie => (
+                  <div key={getMovieDedupKey(movie)} className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{movie.titleRu}</p>
+                      <p className="text-xs text-muted-foreground">{movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}</p>
+                    </div>
+                  </div>
+                ))}
+                {(listModal === 'watchlist' ? customMovies : dismissedMovies).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">Список пуст</p>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 
