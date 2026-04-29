@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
-import { Clapperboard, History, Sparkles, X } from 'lucide-react';
+import { Clapperboard, History, Sparkles, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FilterSection } from '@/components/FilterSection';
 import { MovieCard } from '@/components/MovieCard';
@@ -29,6 +29,7 @@ import { getMovieDedupKey, mergeUniqueMovies } from '@/lib/movieIdentity';
 import { supabase } from '@/integrations/supabase/client';
 import {
   loadCloudLibrary,
+  removeFromCloudLists,
   seedCloudLibrary,
   upsertDismissedMovie,
   upsertWatchedMovie,
@@ -275,6 +276,42 @@ const Index = () => {
     }
   };
 
+  const handleRemoveFromWatchlist = async (movie: Movie) => {
+    const movieKey = getMovieDedupKey(movie);
+    const nextWatchlist = customMovies.filter(item => getMovieDedupKey(item) !== movieKey);
+    setCustomMovies(nextWatchlist);
+    localStorage.setItem('cinema-custom-movies', JSON.stringify(nextWatchlist));
+    if (session) {
+      try {
+        await removeFromCloudLists(movieKey, ['watchlist']);
+        setSyncStatus('Фильм удалён из "Буду смотреть"');
+      } catch (error) {
+        console.error(error);
+        toast.error('Не удалось удалить из облака');
+      }
+    }
+  };
+
+  const handleRemoveFromDismissed = async (movie: Movie) => {
+    const movieKey = getMovieDedupKey(movie);
+    const nextDismissed = dismissedMovies.filter(item => getMovieDedupKey(item) !== movieKey);
+    setDismissedMovies(nextDismissed);
+    localStorage.setItem('cinema-dismissed-movies', JSON.stringify(nextDismissed));
+    if (session) {
+      try {
+        await removeFromCloudLists(movieKey, ['dismissed']);
+        setSyncStatus('Фильм удалён из исключённых');
+      } catch (error) {
+        console.error(error);
+        toast.error('Не удалось удалить из облака');
+      }
+    }
+  };
+
+  const resetFilters = () => {
+    setFilters({ type: null, timeOfDay: null, context: null, format: null, genre: null, mood: null, company: null });
+  };
+
   const handleSendMagicLink = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -378,6 +415,21 @@ const Index = () => {
               <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
               <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
 
+              <AnimatePresence>
+                {hasFilters && (
+                  <motion.button
+                    key="reset-filters"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    onClick={resetFilters}
+                    className="w-full py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <X className="w-3.5 h-3.5" /> Сбросить все фильтры
+                  </motion.button>
+                )}
+              </AnimatePresence>
+
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => void getMovie()}
@@ -464,34 +516,48 @@ const Index = () => {
       <AnimatePresence>
         {listModal && (
           <motion.div
+            key="list-modal"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm flex items-end justify-center"
+            className="fixed inset-0 z-[60] bg-background/80 backdrop-blur-sm"
             onClick={() => setListModal(null)}
           >
             <motion.div
-              initial={{ y: 60 }}
+              initial={{ y: '100%' }}
               animate={{ y: 0 }}
-              exit={{ y: 60 }}
-              className="bg-card border border-border rounded-t-2xl w-full max-w-md max-h-[70vh] flex flex-col overflow-hidden"
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 max-w-md mx-auto flex flex-col bg-card border border-border rounded-t-2xl overflow-hidden"
+              style={{ top: 'calc(var(--header-h, 72px))' }}
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
                 <h3 className="font-display text-lg text-foreground">
                   {listModal === 'watchlist' ? `Буду смотреть (${customMovies.length})` : `Исключено (${dismissedMovies.length})`}
                 </h3>
-                <button onClick={() => setListModal(null)} className="text-muted-foreground">
+                <button onClick={() => setListModal(null)} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="overflow-y-auto p-3 space-y-2">
+              <div className="overflow-y-auto p-3 space-y-2 flex-1">
                 {(listModal === 'watchlist' ? customMovies : dismissedMovies).map(movie => (
                   <div key={getMovieDedupKey(movie)} className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border">
+                    <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
+                      <span className="text-lg">🎬</span>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{movie.titleRu}</p>
-                      <p className="text-xs text-muted-foreground">{movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}
+                      </p>
                     </div>
+                    <button
+                      onClick={() => void (listModal === 'watchlist' ? handleRemoveFromWatchlist(movie) : handleRemoveFromDismissed(movie))}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1 shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
                 {(listModal === 'watchlist' ? customMovies : dismissedMovies).length === 0 && (
