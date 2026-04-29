@@ -80,6 +80,14 @@ const Index = () => {
     return () => data.subscription.unsubscribe();
   }, []);
 
+  // Refs to access current arrays in the session-only sync effect without re-triggering it
+  const watchedRef = useRef(watched);
+  watchedRef.current = watched;
+  const customMoviesRef = useRef(customMovies);
+  customMoviesRef.current = customMovies;
+  const dismissedMoviesRef = useRef(dismissedMovies);
+  dismissedMoviesRef.current = dismissedMovies;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -110,7 +118,7 @@ const Index = () => {
           return;
         }
 
-        await seedCloudLibrary(watched, customMovies, dismissedMovies);
+        await seedCloudLibrary(watchedRef.current, customMoviesRef.current, dismissedMoviesRef.current);
         if (cancelled) return;
         setSyncStatus('Локальная база загружена в Supabase');
       } catch (error) {
@@ -126,7 +134,8 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [session, watched, customMovies, dismissedMovies]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   const updateFilter = (key: keyof FilterState) => (value: string | null) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -433,7 +442,7 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <WatchHistory watched={watched} />
+              <WatchHistory watched={watched} onReRate={movie => setRatingMovie(movie)} />
             </motion.div>
           )}
         </AnimatePresence>
