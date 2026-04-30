@@ -4,7 +4,13 @@ import { BookmarkPlus, Bot, Check, Clock, EyeOff, Loader2, Send, Sparkles, Star,
 import ReactMarkdown from 'react-markdown';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { FilterState, Movie, WatchedMovie } from '@/lib/movieTypes';
+import { FilterState, Movie, WatchedMovie, MOOD_OPTIONS } from '@/lib/movieTypes';
+
+const moodLabel = (m: string) => {
+  const key = m.toLowerCase().trim();
+  const opt = MOOD_OPTIONS.find(o => o.value.toLowerCase() === key || o.label.toLowerCase() === key);
+  return opt ? opt.label : m;
+};
 import { buildFilterSummary, buildTasteProfileSummary, toMovieContext } from '@/lib/tasteProfile';
 import { loadChatMessages, saveChatMessage, StoredChatMessage } from '@/lib/chatStore';
 import { getMovieDedupKey } from '@/lib/movieIdentity';
@@ -403,7 +409,7 @@ export const AiAdvisor = ({
                                     <span key={g} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-secondary text-secondary-foreground">{g}</span>
                                   ))}
                                   {movie.mood.map(m => (
-                                    <span key={m} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-primary/10 text-primary">{m}</span>
+                                    <span key={m} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-primary/10 text-primary">{moodLabel(m)}</span>
                                   ))}
                                 </div>
                               )}
