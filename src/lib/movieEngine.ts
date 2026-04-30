@@ -2,10 +2,11 @@ import { FilterState, Movie, WatchedMovie } from './movieTypes';
 import { MOVIE_DATABASE } from './movieData';
 import { getMovieDedupKey, mergeUniqueMovies } from './movieIdentity';
 
-export function getRecommendation(filters: FilterState, watched: WatchedMovie[], extraMovies: Movie[] = []): Movie | null {
+export function getRecommendation(filters: FilterState, watched: WatchedMovie[], extraMovies: Movie[] = [], dismissed: Movie[] = []): Movie | null {
   const watchedKeys = new Set(watched.map(getMovieDedupKey));
+  const dismissedKeys = new Set(dismissed.map(getMovieDedupKey));
   const allMovies = mergeUniqueMovies(MOVIE_DATABASE, extraMovies);
-  const candidates = allMovies.filter(movie => !watchedKeys.has(getMovieDedupKey(movie)));
+  const candidates = allMovies.filter(movie => !watchedKeys.has(getMovieDedupKey(movie)) && !dismissedKeys.has(getMovieDedupKey(movie)));
 
   const scored = candidates.map(movie => {
     let score = 50;
