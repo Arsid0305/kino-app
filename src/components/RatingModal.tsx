@@ -10,8 +10,8 @@ interface RatingModalProps {
 }
 
 export const RatingModal = ({ movie, onSubmit, onClose }: RatingModalProps) => {
-  const [rating, setRating] = useState(7);
-  const [notes, setNotes] = useState('');
+  const [rating, setRating] = useState(movie.rating ?? 7);
+  const [notes, setNotes] = useState((movie as { notes?: string }).notes ?? '');
 
   return (
     <motion.div

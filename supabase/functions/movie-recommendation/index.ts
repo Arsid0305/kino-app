@@ -136,7 +136,7 @@ serve(async req => {
         messages: [
           {
             role: "system",
-            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON без markdown, без пояснений.",
+            content: "Ты — кинорекомендательная система. Отвечаешь ТОЛЬКО валидным JSON без markdown, без пояснений. ВСЕ строковые поля (titleRu, description, reasonToWatch, genres, mood, country, director) — строго на русском языке. Никогда не используй английский в текстовых полях.",
           },
           {
             role: "user",

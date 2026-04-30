@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Movie } from '@/lib/movieTypes';
+import { Movie, MOOD_OPTIONS } from '@/lib/movieTypes';
+
+const moodLabel = (m: string) => {
+  const key = m.toLowerCase().trim();
+  const opt = MOOD_OPTIONS.find(o => o.value.toLowerCase() === key || o.label.toLowerCase() === key);
+  return opt ? opt.label : m;
+};
 import { Star, Clock, User } from 'lucide-react';
 
 interface MovieCardProps {
@@ -66,7 +72,7 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => {
           ))}
           {movie.mood.map(m => (
             <span key={m} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-primary/10 text-primary">
-              {m}
+              {moodLabel(m)}
             </span>
           ))}
         </div>
