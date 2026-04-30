@@ -15,7 +15,7 @@ export interface Movie {
   format: 'short' | 'medium' | 'long'; // <90, 90-120, >120
   kpRating?: number;
   country?: string;
-  type?: 'film' | 'series';
+  type?: 'film' | 'series' | 'miniseries';
   predictedRating?: number;
   reasonToWatch?: string;
   kpQuery?: string;
