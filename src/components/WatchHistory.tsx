@@ -26,6 +26,7 @@ export const WatchHistory = ({ watched, onReRate }: WatchHistoryProps) => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: Math.min(i * 0.04, 0.15) }}
           onClick={() => onReRate(movie)}
+          style={{ touchAction: 'manipulation' }}
           className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border cursor-pointer hover:border-primary/40 transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">

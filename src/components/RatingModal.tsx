@@ -31,7 +31,7 @@ export const RatingModal = ({ movie, onSubmit, onClose }: RatingModalProps) => {
       >
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl text-foreground">Оценить фильм</h2>
-          <button onClick={onClose} className="text-muted-foreground">
+          <button onClick={onClose} style={{ touchAction: 'manipulation' }} className="text-muted-foreground p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
