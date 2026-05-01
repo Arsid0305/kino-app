@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
-import { Clapperboard, History, Sparkles, Star, Trash2, X } from 'lucide-react';
+import { Clapperboard, Clock, History, Sparkles, Star, Trash2, User, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FilterSection } from '@/components/FilterSection';
 import { MovieCard } from '@/components/MovieCard';
@@ -194,6 +194,24 @@ const Index = () => {
     }
   }, [session, filters, watched, customMovies, dismissedMovies]);
 
+  const handleRateMovie = async (movie: Movie, rating: number, notes: string) => {
+    const entry: WatchedMovie = { ...movie, rating, notes, watchedAt: new Date().toISOString() };
+    const entryKey = getMovieDedupKey(entry);
+    const updatedWatched = [entry, ...watched.filter(m => getMovieDedupKey(m) !== entryKey)];
+    const updatedWatchlist = customMovies.filter(m => getMovieDedupKey(m) !== entryKey);
+    const updatedDismissed = dismissedMovies.filter(m => getMovieDedupKey(m) !== entryKey);
+    setWatched(updatedWatched);
+    setCustomMovies(updatedWatchlist);
+    setDismissedMovies(updatedDismissed);
+    localStorage.setItem('cinema-watched', JSON.stringify(updatedWatched));
+    localStorage.setItem('cinema-custom-movies', JSON.stringify(updatedWatchlist));
+    localStorage.setItem('cinema-dismissed-movies', JSON.stringify(updatedDismissed));
+    if (session) {
+      try { await upsertWatchedMovie(entry); setSyncStatus('Оценка сохранена в Supabase'); }
+      catch (error) { console.error(error); toast.error(error instanceof Error ? error.message : 'Не удалось сохранить оценку в облако'); }
+    }
+  };
+
   const handleRate = async (rating: number, notes: string) => {
     if (!ratingMovie) return;
 
@@ -342,6 +360,9 @@ const Index = () => {
   const [listModal, setListModal] = useState<'watchlist' | 'dismissed' | null>(null);
   const [watchlistSearch, setWatchlistSearch] = useState('');
   const [watchlistPreview, setWatchlistPreview] = useState<Movie | null>(null);
+  const [historyPreview, setHistoryPreview] = useState<WatchedMovie | null>(null);
+  const [historyRating, setHistoryRating] = useState(7);
+  const [historyNotes, setHistoryNotes] = useState('');
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -499,7 +520,11 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <WatchHistory watched={watched} onReRate={movie => setRatingMovie(movie)} />
+              <WatchHistory watched={watched} onReRate={movie => {
+                setHistoryPreview(movie);
+                setHistoryRating(movie.rating ?? 7);
+                setHistoryNotes((movie as { notes?: string }).notes ?? '');
+              }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -512,6 +537,94 @@ const Index = () => {
             onSubmit={(rating, notes) => void handleRate(rating, notes)}
             onClose={() => setRatingMovie(null)}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {historyPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[65] bg-background/95 backdrop-blur-sm overflow-y-auto"
+          >
+            <div className="max-w-md mx-auto p-4 flex flex-col gap-4 min-h-full">
+              <div className="flex justify-end">
+                <button onClick={() => setHistoryPreview(null)} style={{ touchAction: 'manipulation' }} className="text-muted-foreground p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Movie info */}
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-3 cinema-glow">
+                <div>
+                  <h2 className="font-display text-2xl text-foreground leading-tight">{historyPreview.titleRu}</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">{historyPreview.title} · {historyPreview.year}</p>
+                </div>
+                {historyPreview.description && <p className="text-sm text-secondary-foreground leading-relaxed">{historyPreview.description}</p>}
+                {historyPreview.reasonToWatch && (
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
+                    <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{historyPreview.reasonToWatch}</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                  {historyPreview.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {historyPreview.duration} мин</span>}
+                  {historyPreview.director && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {historyPreview.director}</span>}
+                  {historyPreview.kpRating && historyPreview.kpRating > 0 && <span className="flex items-center gap-1 text-primary"><Star className="w-3.5 h-3.5 fill-primary" /> КП {historyPreview.kpRating}</span>}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {historyPreview.genre.map(g => (
+                    <span key={g} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-secondary text-secondary-foreground">{g}</span>
+                  ))}
+                </div>
+                <a
+                  href={`https://yandex.ru/search/?text=${encodeURIComponent((historyPreview.titleRu) + ' фильм ' + historyPreview.year)}`}
+                  target="_blank" rel="noreferrer"
+                  className="block w-full py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-medium text-center"
+                >
+                  Яндекс
+                </a>
+              </div>
+
+              {/* Rewatch button */}
+              <button
+                onClick={() => { void handleAddToWatchlist(historyPreview); setHistoryPreview(null); }}
+                style={{ touchAction: 'manipulation' }}
+                className="w-full py-3 rounded-xl border border-primary/40 text-primary text-sm font-semibold"
+              >
+                Посмотреть повторно
+              </button>
+
+              {/* Rating form */}
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
+                <h3 className="font-display text-lg text-foreground">Ваша оценка</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-center gap-1">
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <motion.button key={i} whileTap={{ scale: 1.2 }} onClick={() => setHistoryRating(i + 1)} className="p-0.5">
+                        <Star className={`w-6 h-6 transition-colors ${i < historyRating ? 'fill-primary text-primary' : 'text-muted-foreground/30'}`} />
+                      </motion.button>
+                    ))}
+                  </div>
+                  <p className="text-center text-2xl font-display text-primary">{historyRating}/10</p>
+                </div>
+                <textarea
+                  value={historyNotes}
+                  onChange={e => setHistoryNotes(e.target.value)}
+                  placeholder="Заметка (необязательно)..."
+                  className="w-full bg-secondary border border-border rounded-xl p-3 text-sm text-foreground placeholder:text-muted-foreground resize-none h-20 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => { void handleRateMovie(historyPreview, historyRating, historyNotes); setHistoryPreview(null); }}
+                  className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm"
+                >
+                  Сохранить оценку
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
