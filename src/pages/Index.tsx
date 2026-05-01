@@ -588,14 +588,29 @@ const Index = () => {
                 </a>
               </div>
 
-              {/* Rewatch button */}
-              <button
-                onClick={() => { void handleAddToWatchlist(historyPreview); setHistoryPreview(null); }}
-                style={{ touchAction: 'manipulation' }}
-                className="w-full py-3 rounded-xl border border-primary/40 text-primary text-sm font-semibold"
-              >
-                Посмотреть повторно
-              </button>
+              {/* Rewatch button — toggle */}
+              {(() => {
+                const isRewatch = customMovies.some(m => getMovieDedupKey(m) === getMovieDedupKey(historyPreview));
+                return (
+                  <button
+                    onClick={() => {
+                      if (isRewatch) {
+                        void handleRemoveFromWatchlist(historyPreview);
+                      } else {
+                        void handleAddToWatchlist(historyPreview);
+                      }
+                    }}
+                    style={{ touchAction: 'manipulation' }}
+                    className={`w-full py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                      isRewatch
+                        ? 'bg-primary/10 border-primary text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary'
+                    }`}
+                  >
+                    {isRewatch ? '★ Посмотреть повторно' : 'Посмотреть повторно'}
+                  </button>
+                );
+              })()}
 
               {/* Rating form */}
               <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
