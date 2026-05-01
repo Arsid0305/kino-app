@@ -126,7 +126,16 @@ function parseExcel(buffer: ArrayBuffer): ParseResult {
   return { watched, toWatch };
 }
 
-function excelRowToMovie(row: Record<string, any>): (Movie & { predictedRating?: number; reasonToWatch?: string }) | null {
+function normalizeExcelRow(row: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key of Object.keys(row)) {
+    result[key.replace(/\s*\(необязательно\)/gi, '').trim()] = row[key];
+  }
+  return result;
+}
+
+function excelRowToMovie(rawRow: Record<string, any>): (Movie & { predictedRating?: number; reasonToWatch?: string }) | null {
+  const row = normalizeExcelRow(rawRow);
   const title = row['Название'] || row['название'] || '';
   const titleOrig = row['Оригинальное название'] || row['оригинальное название'] || '';
   if (!title && !titleOrig) return null;
