@@ -707,7 +707,11 @@ const Index = () => {
                   ? customMovies.filter(m => !watchlistSearch || m.titleRu.toLowerCase().includes(watchlistSearch.toLowerCase()) || m.title.toLowerCase().includes(watchlistSearch.toLowerCase()))
                   : dismissedMovies
                 ).map(movie => (
-                  <div key={getMovieDedupKey(movie)} className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border">
+                  <div key={getMovieDedupKey(movie)} className={`flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border transition-colors ${
+                    listModal === 'watchlist' && watched.some(w => getMovieDedupKey(w) === getMovieDedupKey(movie))
+                      ? 'border-primary/40 shadow-[0_0_8px_0px] shadow-primary/20'
+                      : 'border-border'
+                  }`}>
                     <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
                       <span className="text-lg">🎬</span>
                     </div>
