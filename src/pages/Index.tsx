@@ -520,7 +520,10 @@ const Index = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
             >
-              <WatchHistory watched={watched} onReRate={movie => {
+              <WatchHistory
+                watched={watched}
+                rewatchKeys={new Set(customMovies.map(getMovieDedupKey))}
+                onReRate={movie => {
                 setHistoryPreview(movie);
                 setHistoryRating(movie.rating ?? 7);
                 setHistoryNotes((movie as { notes?: string }).notes ?? '');

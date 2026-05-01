@@ -1,13 +1,15 @@
 import { motion } from 'framer-motion';
 import { WatchedMovie } from '@/lib/movieTypes';
+import { getMovieDedupKey } from '@/lib/movieIdentity';
 import { Star, Clock } from 'lucide-react';
 
 interface WatchHistoryProps {
   watched: WatchedMovie[];
   onReRate: (movie: WatchedMovie) => void;
+  rewatchKeys?: Set<string>;
 }
 
-export const WatchHistory = ({ watched, onReRate }: WatchHistoryProps) => {
+export const WatchHistory = ({ watched, onReRate, rewatchKeys }: WatchHistoryProps) => {
   if (watched.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -27,7 +29,11 @@ export const WatchHistory = ({ watched, onReRate }: WatchHistoryProps) => {
           transition={{ delay: Math.min(i * 0.04, 0.15) }}
           onClick={() => onReRate(movie)}
           style={{ touchAction: 'manipulation' }}
-          className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border cursor-pointer hover:border-primary/40 transition-colors"
+          className={`flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border cursor-pointer transition-colors ${
+            rewatchKeys?.has(getMovieDedupKey(movie))
+              ? 'border-primary/40 shadow-[0_0_8px_0px] shadow-primary/20'
+              : 'border-border hover:border-primary/40'
+          }`}
         >
           <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
             <span className="text-lg">🎬</span>
