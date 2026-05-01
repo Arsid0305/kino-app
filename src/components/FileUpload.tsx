@@ -6,11 +6,11 @@ import * as XLSX from 'xlsx';
 
 function downloadTemplate() {
   const watched = [
-    { Название: 'Интерстеллар', Год: 2014, Жанр: 'фантастика', Оценка: 9, Тип: 'film' },
-    { Название: 'Паразиты', Год: 2019, Жанр: 'драма', Оценка: 8, Тип: 'film' },
+    { Название: 'Интерстеллар', 'Моя оценка': 9 },
+    { Название: 'Паразиты', 'Моя оценка': 8 },
   ];
   const toWatch = [
-    { Название: 'Дюна', Год: 2021, Жанр: 'фантастика', Тип: 'film' },
+    { Название: 'Дюна' },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(watched), 'Просмотрено');
