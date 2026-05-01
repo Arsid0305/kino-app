@@ -2,11 +2,34 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Movie, MOOD_OPTIONS } from '@/lib/movieTypes';
 
+const MOOD_ALIASES: Record<string, string> = {
+  funny: 'happy', humor: 'happy', humorous: 'happy',
+  sad: 'nostalgic', melancholy: 'nostalgic', touching: 'nostalgic', emotional: 'nostalgic',
+  romantic: 'calm', relaxing: 'calm', peaceful: 'calm',
+  tense: 'excited', suspense: 'excited', scary: 'excited', horror: 'excited',
+  adventurous: 'excited', action: 'excited', intense: 'excited',
+  mysterious: 'thoughtful', dark: 'thoughtful', deep: 'thoughtful',
+};
+
 const moodLabel = (m: string) => {
   const key = m.toLowerCase().trim();
-  const opt = MOOD_OPTIONS.find(o => o.value.toLowerCase() === key || o.label.toLowerCase() === key);
+  const resolved = MOOD_ALIASES[key] ?? key;
+  const opt = MOOD_OPTIONS.find(o => o.value.toLowerCase() === resolved || o.label.toLowerCase() === resolved);
   return opt ? opt.label : m;
 };
+
+const GENRE_RU: Record<string, string> = {
+  comedy: 'Комедия', drama: 'Драма', thriller: 'Триллер', action: 'Боевик',
+  horror: 'Ужасы', romance: 'Мелодрама', romantic: 'Мелодрама',
+  fantasy: 'Фэнтези', 'sci-fi': 'Фантастика', 'science fiction': 'Фантастика',
+  adventure: 'Приключения', animation: 'Анимация', documentary: 'Документальный',
+  crime: 'Криминал', biography: 'Биография', history: 'Исторический',
+  historical: 'Исторический', sport: 'Спорт', sports: 'Спорт',
+  war: 'Военный', musical: 'Музыка', music: 'Музыка',
+  detective: 'Детектив', family: 'Семейный', mystery: 'Детектив',
+};
+
+const genreLabel = (g: string) => GENRE_RU[g.toLowerCase().trim()] ?? g;
 import { Star, Clock, User } from 'lucide-react';
 
 interface MovieCardProps {
@@ -67,7 +90,7 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => {
         <div className="flex flex-wrap gap-1.5">
           {movie.genre.map(g => (
             <span key={g} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-secondary text-secondary-foreground">
-              {g}
+              {genreLabel(g)}
             </span>
           ))}
           {movie.mood.map(m => (
