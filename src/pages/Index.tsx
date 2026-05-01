@@ -198,13 +198,11 @@ const Index = () => {
     const entry: WatchedMovie = { ...movie, rating, notes, watchedAt: new Date().toISOString() };
     const entryKey = getMovieDedupKey(entry);
     const updatedWatched = [entry, ...watched.filter(m => getMovieDedupKey(m) !== entryKey)];
-    const updatedWatchlist = customMovies.filter(m => getMovieDedupKey(m) !== entryKey);
+    // Re-rating from history does NOT remove from watchlist (user may want to rewatch again)
     const updatedDismissed = dismissedMovies.filter(m => getMovieDedupKey(m) !== entryKey);
     setWatched(updatedWatched);
-    setCustomMovies(updatedWatchlist);
     setDismissedMovies(updatedDismissed);
     localStorage.setItem('cinema-watched', JSON.stringify(updatedWatched));
-    localStorage.setItem('cinema-custom-movies', JSON.stringify(updatedWatchlist));
     localStorage.setItem('cinema-dismissed-movies', JSON.stringify(updatedDismissed));
     if (session) {
       try { await upsertWatchedMovie(entry); setSyncStatus('Оценка сохранена в Supabase'); }
