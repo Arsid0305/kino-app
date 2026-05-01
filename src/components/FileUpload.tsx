@@ -2,6 +2,21 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, Check, AlertCircle, Info } from 'lucide-react';
 import { parseMovieFile, ParseResult } from '@/lib/fileParser';
+import * as XLSX from 'xlsx';
+
+function downloadTemplate() {
+  const watched = [
+    { Название: 'Интерстеллар', Год: 2014, Жанр: 'фантастика', Оценка: 9, Тип: 'film' },
+    { Название: 'Паразиты', Год: 2019, Жанр: 'драма', Оценка: 8, Тип: 'film' },
+  ];
+  const toWatch = [
+    { Название: 'Дюна', Год: 2021, Жанр: 'фантастика', Тип: 'film' },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(watched), 'Просмотрено');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(toWatch), 'Буду смотреть');
+  XLSX.writeFile(wb, 'Фильмография_шаблон.xlsx');
+}
 
 interface FileUploadProps {
   onMoviesLoaded: (result: ParseResult) => void;
@@ -93,6 +108,12 @@ export const FileUpload = ({ onMoviesLoaded }: FileUploadProps) => {
                 <li><strong>.csv</strong> — таблица с заголовками</li>
               </ul>
               <p className="text-[10px]">Excel: листы «Просмотрено» и «Буду смотреть» импортируются автоматически</p>
+              <button
+                onClick={downloadTemplate}
+                className="mt-1 w-full py-2 rounded-lg border border-primary/40 text-primary font-medium text-[11px] hover:bg-primary/10 transition-colors"
+              >
+                Скачать шаблон Excel
+              </button>
             </div>
           </motion.div>
         )}
