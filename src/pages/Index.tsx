@@ -341,6 +341,7 @@ const Index = () => {
 
   const [listModal, setListModal] = useState<'watchlist' | 'dismissed' | null>(null);
   const [watchlistSearch, setWatchlistSearch] = useState('');
+  const [watchlistPreview, setWatchlistPreview] = useState<Movie | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -515,6 +516,33 @@ const Index = () => {
       </AnimatePresence>
 
       <AnimatePresence>
+        {watchlistPreview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
+            onClick={() => setWatchlistPreview(null)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={e => e.stopPropagation()}
+              className="w-full max-w-md"
+            >
+              <MovieCard
+                movie={watchlistPreview}
+                onRate={m => { setWatchlistPreview(null); setRatingMovie(m); }}
+                onSkip={() => setWatchlistPreview(null)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {listModal && (
           <motion.div
             key="list-modal"
@@ -561,17 +589,16 @@ const Index = () => {
                     <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
                       <span className="text-lg">🎬</span>
                     </div>
-                    <a
-                      href={`https://yandex.ru/search/?text=${encodeURIComponent((movie.titleRu || movie.title) + ' фильм ' + movie.year)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex-1 min-w-0"
+                    <button
+                      onClick={() => { setWatchlistPreview(movie); setListModal(null); }}
+                      style={{ touchAction: 'manipulation' }}
+                      className="flex-1 min-w-0 text-left"
                     >
                       <p className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">{movie.titleRu}</p>
                       <p className="text-xs text-muted-foreground">
                         {movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}
                       </p>
-                    </a>
+                    </button>
                     {listModal === 'watchlist' && (
                       <button
                         onClick={() => { setRatingMovie(movie); setListModal(null); }}
