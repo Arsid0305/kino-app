@@ -694,7 +694,7 @@ const Index = () => {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed inset-x-0 bottom-0 max-w-md mx-auto flex flex-col bg-card border border-border rounded-t-2xl overflow-hidden"
-              style={{ top: 'calc(var(--header-h, 72px))' }}
+              style={{ top: 0 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
