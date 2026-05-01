@@ -134,7 +134,7 @@ async function callProvider(
       const key = Deno.env.get("OPENAI_API_KEY");
       if (!key) throw new Error("OPENAI_API_KEY не настроен");
       const model = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
-      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages, false);
+      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages, true);
     }
     case "gemini": {
       const key = Deno.env.get("GOOGLE_API_KEY");
