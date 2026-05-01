@@ -15,7 +15,7 @@
 - Комментарии в коде — только если «почему» неочевидно. Не объяснять «что делает код».
 - Не трогать `.cursorrules` — используется Cursor.
 - Не создавать README и документацию без явного запроса.
-- Не выдумывать UI с нуля — брать из design system (папка `kino-design-system/preview/`).
+- Не выдумывать UI с нуля — брать из design system (папка `design-system/[PROJECT_NAME]/preview/`).
 
 ### Git
 - Разрабатывать на ветке, указанной в задаче (обычно `claude/...`).
@@ -25,21 +25,36 @@
 - Для синхронизации с main: `git pull origin main` (не rebase).
 
 ### UI-правки
-- Перед любым изменением UI — открыть соответствующий файл из `kino-design-system/preview/`.
+- Перед любым изменением UI — открыть соответствующий файл из `design-system/[PROJECT_NAME]/preview/`.
 - Если пользователь говорит «не похоже» / «как на телефоне» / «как было» — нарушено это правило, идти в design system.
+
+Структура design system репо (`github.com/Arsid0305/design-system`):
+```
+design-system/
+├── kino-app/       ← папка для kino-app
+│   ├── preview/    ← HTML-файлы компонентов
+│   ├── ui_kits/    ← JSX-компоненты
+│   └── assets/     ← иконки, лого
+├── [PROJECT_NAME]/ ← папка для нового проекта
+│   └── preview/
+└── ...
+```
+
+Подключить в проект: `git submodule add https://github.com/Arsid0305/design-system.git design-system`
+Обновить: `git submodule update --remote`
 
 | Что меняешь | Файл |
 |-------------|------|
-| Карточки (MovieCard, чат) | `component-cards.html` |
-| Кнопки | `component-buttons.html` |
-| Чипы, теги | `component-chips.html` |
-| Шапка, табы, счётчики | `component-nav.html` |
-| Чат AI | `component-chat.html` |
-| Авторизация, профиль | `component-auth.html` |
-| Цвета | `colors-base.html`, `colors-semantic.html` |
-| Шрифты | `type-display.html`, `type-body.html` |
-| Тени | `shadows-glow.html` |
-| Отступы | `spacing-tokens.html` |
+| Карточки | `[PROJECT_NAME]/preview/component-cards.html` |
+| Кнопки | `[PROJECT_NAME]/preview/component-buttons.html` |
+| Чипы, теги | `[PROJECT_NAME]/preview/component-chips.html` |
+| Шапка, табы | `[PROJECT_NAME]/preview/component-nav.html` |
+| Чат AI | `[PROJECT_NAME]/preview/component-chat.html` |
+| Авторизация | `[PROJECT_NAME]/preview/component-auth.html` |
+| Цвета | `[PROJECT_NAME]/preview/colors-base.html` |
+| Шрифты | `[PROJECT_NAME]/preview/type-display.html` |
+| Тени | `[PROJECT_NAME]/preview/shadows-glow.html` |
+| Отступы | `[PROJECT_NAME]/preview/spacing-tokens.html` |
 
 ---
 
@@ -64,8 +79,9 @@
 - `DEEPSEEK_API_KEY`
 
 ### Design System
-- Подключён как git submodule: `github.com/Arsid0305/design-system`
-- Подключить в новый проект: `git submodule add https://github.com/Arsid0305/design-system.git kino-design-system`
+- Единый репо для всех проектов: `github.com/Arsid0305/design-system`
+- Каждый проект — своя подпапка: `design-system/[PROJECT_NAME]/`
+- Подключить в новый проект: `git submodule add https://github.com/Arsid0305/design-system.git design-system`
 - Обновить: `git submodule update --remote`
 
 ---
