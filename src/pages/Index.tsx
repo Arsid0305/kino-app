@@ -407,13 +407,13 @@ const Index = () => {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-5"
             >
-                           <FilterSection title="Тип" options={TYPE_OPTIONS} selected={filters.type} onSelect={updateFilter('type')} />
-              <FilterSection title="Время дня" options={TIME_OPTIONS} selected={filters.timeOfDay} onSelect={updateFilter('timeOfDay')} />
-              <FilterSection title="Контекст" options={CONTEXT_OPTIONS} selected={filters.context} onSelect={updateFilter('context')} />
-              <FilterSection title="Формат" options={FORMAT_OPTIONS} selected={filters.format} onSelect={updateFilter('format')} />
-              <FilterSection title="Жанр" options={GENRE_OPTIONS} selected={filters.genre} onSelect={updateFilter('genre')} />
-              <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} />
-              <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} />
+                           <FilterSection title="Тип" options={TYPE_OPTIONS} selected={filters.type} onSelect={updateFilter('type')} cols={3} />
+              <FilterSection title="Время дня" options={TIME_OPTIONS} selected={filters.timeOfDay} onSelect={updateFilter('timeOfDay')} cols={4} />
+              <FilterSection title="Контекст" options={CONTEXT_OPTIONS} selected={filters.context} onSelect={updateFilter('context')} cols={3} />
+              <FilterSection title="Формат" options={FORMAT_OPTIONS} selected={filters.format} onSelect={updateFilter('format')} cols={3} />
+              <FilterSection title="Жанр" options={GENRE_OPTIONS} selected={filters.genre} onSelect={updateFilter('genre')} cols={3} />
+              <FilterSection title="Настроение" options={MOOD_OPTIONS} selected={filters.mood} onSelect={updateFilter('mood')} cols={3} />
+              <FilterSection title="Компания" options={COMPANY_OPTIONS} selected={filters.company} onSelect={updateFilter('company')} cols={3} />
 
               <AnimatePresence>
                 {hasFilters && (

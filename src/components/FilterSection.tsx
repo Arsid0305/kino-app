@@ -31,12 +31,13 @@ interface FilterSectionProps {
   options: { value: string; label: string; icon: string; subtitle?: string }[];
   selected: string | null;
   onSelect: (value: string | null) => void;
+  cols?: number;
 }
 
-export const FilterSection = ({ title, options, selected, onSelect }: FilterSectionProps) => (
+export const FilterSection = ({ title, options, selected, onSelect, cols }: FilterSectionProps) => (
   <div className="space-y-2.5">
     <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{title}</h3>
-    <div className="flex flex-wrap gap-2">
+    <div className={cols ? `grid gap-2` : 'flex flex-wrap gap-2'} style={cols ? { gridTemplateColumns: `repeat(${cols}, 1fr)` } : undefined}>
       {options.map(opt => (
         <FilterChip
           key={opt.value}
