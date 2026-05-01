@@ -469,7 +469,12 @@ const Index = () => {
                   <MovieCard
                     key={movie.id}
                     movie={movie}
-                    onRate={m => setRatingMovie(m)}
+                    onRate={m => {
+                      void handleAddToWatchlist(m);
+                      const remaining = recommendations.filter(r => r.id !== m.id);
+                      setRecommendations(remaining);
+                      if (remaining.length === 0) void getMovie();
+                    }}
                     onSkip={() => {
                       void handleDismissMovie(movie);
                       const remaining = recommendations.filter(r => r.id !== movie.id);
