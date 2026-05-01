@@ -92,6 +92,26 @@ _(пусто — фикси по мере поступления)_
 
 ---
 
+## Незавершённая чистка репо (низкий приоритет)
+
+Следующие файлы запланированы к удалению, но ещё не удалены:
+
+### Мёртвые компоненты (никуда не импортируются)
+- `src/components/MovieListSheet.tsx`
+- `src/components/NavLink.tsx`
+- `src/hooks/use-mobile.tsx`
+
+### Неиспользуемые shadcn/ui компоненты (src/components/ui/)
+Оставить: `button, dialog, input, label, separator, sheet, skeleton, sonner, toast, toaster, toggle, tooltip`
+Удалить все остальные (~36 файлов)
+
+### Устаревшие Edge Functions
+- `supabase/functions/deepseek-chat/` — старая, заменена ai-chat
+- `supabase/functions/openai-chat/` — старая, заменена ai-chat
+(перед удалением из репо — удалить вручную в Supabase Dashboard)
+
+---
+
 ## Папка проекта на машине пользователя
 
 ```
