@@ -109,7 +109,7 @@ async function callGemini(
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
       const parts = d.candidates?.[0]?.content?.parts ?? [];
-      return parts.map(p => p.text ?? "").join("").trim();
+      return parts.filter((p: { thought?: boolean }) => !p.thought).map((p: { text?: string }) => p.text ?? "").join("").trim();
     }
     lastError = `Gemini ${res.status}: ${await res.text()}`;
     // Only retry on 503 / 429 (transient)
@@ -134,7 +134,7 @@ async function callProvider(
       const key = Deno.env.get("OPENAI_API_KEY");
       if (!key) throw new Error("OPENAI_API_KEY не настроен");
       const model = Deno.env.get("OPENAI_MODEL") ?? DEFAULT_OPENAI_MODEL;
-      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages, true);
+      return callOpenAICompat(key, "https://api.openai.com/v1", model, systemPrompt, messages, false);
     }
     case "gemini": {
       const key = Deno.env.get("GOOGLE_API_KEY");
