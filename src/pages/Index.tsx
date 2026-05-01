@@ -650,7 +650,7 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
             onClick={() => setWatchlistPreview(null)}
           >
             <motion.div
@@ -672,7 +672,7 @@ const Index = () => {
               </div>
               <MovieCard
                 movie={watchlistPreview}
-                onRate={m => { setWatchlistPreview(null); setRatingMovie(m); }}
+                onRate={m => { setWatchlistPreview(null); setRatingMovie(m); setListModal('watchlist'); }}
                 onSkip={() => setWatchlistPreview(null)}
               />
             </motion.div>
@@ -732,7 +732,7 @@ const Index = () => {
                       <span className="text-lg">🎬</span>
                     </div>
                     <button
-                      onClick={() => { setWatchlistPreview(movie); setListModal(null); }}
+                      onClick={() => { setWatchlistPreview(movie); }}
                       style={{ touchAction: 'manipulation' }}
                       className="flex-1 min-w-0 text-left"
                     >
@@ -743,7 +743,7 @@ const Index = () => {
                     </button>
                     {listModal === 'watchlist' && (
                       <button
-                        onClick={() => { setRatingMovie(movie); setListModal(null); }}
+                        onClick={() => { setRatingMovie(movie); }}
                         style={{ touchAction: 'manipulation' }}
                         className="text-muted-foreground hover:text-primary transition-colors p-1 shrink-0"
                       >
