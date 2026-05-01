@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Session } from '@supabase/supabase-js';
-import { Clapperboard, History, Sparkles, Trash2, X } from 'lucide-react';
+import { Clapperboard, History, Sparkles, Star, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { FilterSection } from '@/components/FilterSection';
 import { MovieCard } from '@/components/MovieCard';
@@ -552,6 +552,15 @@ const Index = () => {
                         {movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}
                       </p>
                     </div>
+                    {listModal === 'watchlist' && (
+                      <button
+                        onClick={() => { setRatingMovie(movie); setListModal(null); }}
+                        style={{ touchAction: 'manipulation' }}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1 shrink-0"
+                      >
+                        <Star className="w-4 h-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => void (listModal === 'watchlist' ? handleRemoveFromWatchlist(movie) : handleRemoveFromDismissed(movie))}
                       className="text-muted-foreground hover:text-destructive transition-colors p-1 shrink-0"
