@@ -24,7 +24,7 @@ export const WatchHistory = ({ watched, onReRate }: WatchHistoryProps) => {
           key={movie.id}
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.05 }}
+          transition={{ delay: Math.min(i * 0.04, 0.15) }}
           onClick={() => onReRate(movie)}
           className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border cursor-pointer hover:border-primary/40 transition-colors"
         >
