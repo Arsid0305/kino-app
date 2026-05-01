@@ -72,6 +72,8 @@ export const GENRE_OPTIONS = [
   { value: 'romance', label: 'Мелодрама', icon: '❤️' },
   { value: 'horror', label: 'Ужасы', icon: '👻' },
   { value: 'documentary', label: 'Документальный', icon: '📹' },
+  { value: 'sport', label: 'Спорт', icon: '⚽' },
+  { value: 'historical', label: 'Исторический', icon: '🏛️' },
 ];
 
 export const MOOD_OPTIONS = [
