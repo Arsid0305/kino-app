@@ -532,6 +532,15 @@ const Index = () => {
               onClick={e => e.stopPropagation()}
               className="w-full max-w-md"
             >
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setWatchlistPreview(null)}
+                  style={{ touchAction: 'manipulation' }}
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
               <MovieCard
                 movie={watchlistPreview}
                 onRate={m => { setWatchlistPreview(null); setRatingMovie(m); }}
