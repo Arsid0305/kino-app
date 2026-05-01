@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookmarkPlus, Bot, Check, Clock, EyeOff, Loader2, Send, Sparkles, Star, Trash2, User, X } from 'lucide-react';
+import { Bot, Check, Clock, EyeOff, Loader2, Send, Sparkles, Star, Trash2, User, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -426,12 +426,12 @@ export const AiAdvisor = ({
                                   disabled={inWatchlist}
                                   className={`flex-1 py-3 rounded-xl border text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                                     inWatchlist
-                                      ? 'border-primary/30 bg-primary/10 text-primary cursor-default'
+                                      ? 'bg-primary text-primary-foreground border-primary'
                                       : 'border-border text-foreground bg-transparent hover:bg-secondary'
                                   }`}
                                 >
-                                  <BookmarkPlus className="w-4 h-4" />
-                                  Буду смотреть
+                                  <Star className={`w-4 h-4 ${inWatchlist ? 'fill-primary-foreground' : ''}`} />
+                                  Смотрю!
                                 </button>
                                 <button
                                   onClick={() => onRateMovie(movie)}
