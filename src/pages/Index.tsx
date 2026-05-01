@@ -232,6 +232,7 @@ const Index = () => {
     localStorage.setItem('cinema-custom-movies', JSON.stringify(updatedWatchlist));
     localStorage.setItem('cinema-dismissed-movies', JSON.stringify(updatedDismissed));
     setRatingMovie(null);
+    setWatchlistPreview(null);
 
     if (session) {
       try {
@@ -703,22 +704,15 @@ const Index = () => {
                   >
                     Яндекс
                   </a>
-                  <button
-                    onClick={() => setWatchlistPreview(null)}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
                     style={{ touchAction: 'manipulation' }}
-                    className="flex-1 py-3 rounded-xl border border-primary/40 text-primary text-sm font-medium"
+                    onClick={() => setRatingMovie(watchlistPreview)}
+                    className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
                   >
-                    Закрыть
-                  </button>
+                    Оценить
+                  </motion.button>
                 </div>
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  style={{ touchAction: 'manipulation' }}
-                  onClick={() => { setRatingMovie(watchlistPreview); setWatchlistPreview(null); setListModal('watchlist'); }}
-                  className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm"
-                >
-                  Оценить
-                </motion.button>
               </div>
             </div>
           </motion.div>
