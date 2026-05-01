@@ -650,7 +650,7 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] flex items-end justify-center bg-background/80 backdrop-blur-sm p-4"
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-background/80 backdrop-blur-sm"
             onClick={() => setWatchlistPreview(null)}
           >
             <motion.div
@@ -659,17 +659,15 @@ const Index = () => {
               exit={{ y: 60, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="w-full max-w-md"
+              className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto"
             >
-              <div className="flex justify-end mb-2">
-                <button
-                  onClick={() => setWatchlistPreview(null)}
-                  style={{ touchAction: 'manipulation' }}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <button
+                onClick={() => setWatchlistPreview(null)}
+                style={{ touchAction: 'manipulation' }}
+                className="absolute top-3 right-3 z-10 bg-card/80 backdrop-blur-sm rounded-full p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
               <MovieCard
                 movie={watchlistPreview}
                 onRate={m => { setWatchlistPreview(null); setRatingMovie(m); setListModal('watchlist'); }}
