@@ -561,12 +561,17 @@ const Index = () => {
                     <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
                       <span className="text-lg">🎬</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{movie.titleRu}</p>
+                    <a
+                      href={`https://yandex.ru/search/?text=${encodeURIComponent((movie.titleRu || movie.title) + ' фильм ' + movie.year)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 min-w-0"
+                    >
+                      <p className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">{movie.titleRu}</p>
                       <p className="text-xs text-muted-foreground">
                         {movie.year > 0 ? `${movie.year} · ` : ''}{movie.type === 'series' ? 'Сериал' : movie.type === 'miniseries' ? 'Минисериал' : 'Фильм'}
                       </p>
-                    </div>
+                    </a>
                     {listModal === 'watchlist' && (
                       <button
                         onClick={() => { setRatingMovie(movie); setListModal(null); }}
