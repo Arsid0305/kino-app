@@ -36,9 +36,10 @@ interface MovieCardProps {
   movie: Movie;
   onRate: (movie: Movie) => void;
   onSkip: () => void;
+  rateLabel?: string;
 }
 
-export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => {
+export const MovieCard = ({ movie, onRate, onSkip, rateLabel = 'Смотрю!' }: MovieCardProps) => {
   const [watchClicked, setWatchClicked] = useState(false);
 
   return (
@@ -119,7 +120,7 @@ export const MovieCard = ({ movie, onRate, onSkip }: MovieCardProps) => {
             }`}
           >
             <Star className={`w-4 h-4 ${watchClicked ? 'fill-primary-foreground' : ''}`} />
-            Смотрю!
+            {rateLabel}
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.95 }}

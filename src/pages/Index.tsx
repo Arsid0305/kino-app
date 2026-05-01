@@ -677,6 +677,7 @@ const Index = () => {
                 movie={watchlistPreview}
                 onRate={m => { setWatchlistPreview(null); setRatingMovie(m); setListModal('watchlist'); }}
                 onSkip={() => setWatchlistPreview(null)}
+                rateLabel="Оценить"
               />
             </motion.div>
           </motion.div>
