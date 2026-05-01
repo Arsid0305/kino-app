@@ -340,6 +340,7 @@ const Index = () => {
   };
 
   const [listModal, setListModal] = useState<'watchlist' | 'dismissed' | null>(null);
+  const [watchlistSearch, setWatchlistSearch] = useState('');
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -536,12 +537,26 @@ const Index = () => {
                 <h3 className="font-display text-lg text-foreground">
                   {listModal === 'watchlist' ? `Буду смотреть (${customMovies.length})` : `Исключено (${dismissedMovies.length})`}
                 </h3>
-                <button onClick={() => setListModal(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => { setListModal(null); setWatchlistSearch(''); }} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
+              {listModal === 'watchlist' && (
+                <div className="px-3 pt-2 pb-1 shrink-0">
+                  <input
+                    type="text"
+                    value={watchlistSearch}
+                    onChange={e => setWatchlistSearch(e.target.value)}
+                    placeholder="Поиск по названию..."
+                    className="w-full bg-secondary border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              )}
               <div className="overflow-y-auto p-3 space-y-2 flex-1">
-                {(listModal === 'watchlist' ? customMovies : dismissedMovies).map(movie => (
+                {(listModal === 'watchlist'
+                  ? customMovies.filter(m => !watchlistSearch || m.titleRu.toLowerCase().includes(watchlistSearch.toLowerCase()) || m.title.toLowerCase().includes(watchlistSearch.toLowerCase()))
+                  : dismissedMovies
+                ).map(movie => (
                   <div key={getMovieDedupKey(movie)} className="flex items-center gap-3 bg-secondary/50 rounded-xl p-3 border border-border">
                     <div className="w-10 h-10 rounded-lg bg-cinema-surface flex items-center justify-center shrink-0">
                       <span className="text-lg">🎬</span>
@@ -569,8 +584,12 @@ const Index = () => {
                     </button>
                   </div>
                 ))}
-                {(listModal === 'watchlist' ? customMovies : dismissedMovies).length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">Список пуст</p>
+                {(listModal === 'watchlist'
+                  ? customMovies.filter(m => !watchlistSearch || m.titleRu.toLowerCase().includes(watchlistSearch.toLowerCase()) || m.title.toLowerCase().includes(watchlistSearch.toLowerCase()))
+                  : dismissedMovies).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    {listModal === 'watchlist' && watchlistSearch ? 'Ничего не найдено' : 'Список пуст'}
+                  </p>
                 )}
               </div>
             </motion.div>
