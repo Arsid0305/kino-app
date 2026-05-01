@@ -655,56 +655,71 @@ const Index = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-sm overflow-y-auto"
+            className="fixed inset-0 z-[70] bg-background overflow-y-auto"
           >
-            <div className="max-w-md mx-auto p-4 flex flex-col gap-4 min-h-full">
-              <div className="flex justify-end">
+            <div className="max-w-md mx-auto flex flex-col min-h-full">
+
+              {/* Header */}
+              <div className="flex justify-end px-4 pt-4 pb-2 shrink-0">
                 <button onClick={() => setWatchlistPreview(null)} style={{ touchAction: 'manipulation' }} className="text-muted-foreground p-1">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="bg-card border border-border rounded-2xl p-5 space-y-3 cinema-glow">
-                <div>
-                  <h2 className="font-display text-2xl text-foreground leading-tight">{watchlistPreview.titleRu}</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">{watchlistPreview.title} · {watchlistPreview.year}</p>
-                </div>
-                {watchlistPreview.description && (
-                  <p className="text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.description}</p>
-                )}
-                {watchlistPreview.reasonToWatch && (
-                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
-                    <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.reasonToWatch}</p>
+              {/* Content */}
+              <div className="flex-1 px-4 pb-6 flex flex-col gap-4">
+                <div className="bg-card border border-border rounded-2xl p-5 space-y-3 cinema-glow">
+                  <div>
+                    <h2 className="font-display text-2xl text-foreground leading-tight">{watchlistPreview.titleRu}</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">{watchlistPreview.title} · {watchlistPreview.year}</p>
                   </div>
-                )}
-                <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
-                  {watchlistPreview.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {watchlistPreview.duration} мин</span>}
-                  {watchlistPreview.director && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {watchlistPreview.director}</span>}
-                  {watchlistPreview.kpRating && watchlistPreview.kpRating > 0 && <span className="flex items-center gap-1 text-primary"><Star className="w-3.5 h-3.5 fill-primary" /> КП {watchlistPreview.kpRating}</span>}
+                  {watchlistPreview.description && (
+                    <p className="text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.description}</p>
+                  )}
+                  {watchlistPreview.reasonToWatch && (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
+                      <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.reasonToWatch}</p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                    {watchlistPreview.duration > 0 && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {watchlistPreview.duration} мин</span>}
+                    {watchlistPreview.director && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" /> {watchlistPreview.director}</span>}
+                    {watchlistPreview.kpRating && watchlistPreview.kpRating > 0 && <span className="flex items-center gap-1 text-primary"><Star className="w-3.5 h-3.5 fill-primary" /> КП {watchlistPreview.kpRating}</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {watchlistPreview.genre.map(g => (
+                      <span key={g} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-secondary text-secondary-foreground">{g}</span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {watchlistPreview.genre.map(g => (
-                    <span key={g} className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-md bg-secondary text-secondary-foreground">{g}</span>
-                  ))}
-                </div>
-                <a
-                  href={`https://yandex.ru/search/?text=${encodeURIComponent(watchlistPreview.titleRu + ' фильм ' + watchlistPreview.year)}`}
-                  target="_blank" rel="noreferrer"
-                  className="block w-full py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-medium text-center"
-                >
-                  Яндекс
-                </a>
-              </div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                style={{ touchAction: 'manipulation' }}
-                onClick={() => { setRatingMovie(watchlistPreview); setWatchlistPreview(null); setListModal('watchlist'); }}
-                className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm"
-              >
-                Оценить
-              </motion.button>
+                {/* Buttons */}
+                <div className="flex gap-3">
+                  <a
+                    href={`https://yandex.ru/search/?text=${encodeURIComponent(watchlistPreview.titleRu + ' фильм ' + watchlistPreview.year)}`}
+                    target="_blank" rel="noreferrer"
+                    className="flex-1 py-3 rounded-xl border border-primary/40 text-primary text-sm font-medium text-center"
+                  >
+                    Яндекс
+                  </a>
+                  <button
+                    onClick={() => setWatchlistPreview(null)}
+                    style={{ touchAction: 'manipulation' }}
+                    className="flex-1 py-3 rounded-xl border border-primary/40 text-primary text-sm font-medium"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  style={{ touchAction: 'manipulation' }}
+                  onClick={() => { setRatingMovie(watchlistPreview); setWatchlistPreview(null); setListModal('watchlist'); }}
+                  className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-semibold text-sm"
+                >
+                  Оценить
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}
