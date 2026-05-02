@@ -120,13 +120,34 @@ _(пусто — фикси по мере поступления)_
 ## Папка проекта на машине пользователя
 
 ```
-C:\DATA\AI_OS\projects\Kino
+C:\DATA\AI_OS\projects\Kino-app
 ```
 
-Локальная синхронизация (`pull.bat`):
+Локальная синхронизация (`pull-all.bat` в `C:\DATA\AI_OS\`):
 ```bat
 @echo off
-cd /d C:\DATA\AI_OS\projects\Kino
+echo Синхронизация всех проектов...
+
+echo [1/5] Kino-app
+cd /d C:\DATA\AI_OS\projects\Kino-app
 git pull origin main
+
+echo [2/5] WB_bot
+cd /d C:\DATA\AI_OS\projects\WB_bot
+git pull origin main
+
+echo [3/5] Response_bot
+cd /d C:\DATA\AI_OS\projects\Response_bot
+git pull origin main
+
+echo [4/5] Skincare_Guide
+cd /d C:\DATA\AI_OS\projects\Skincare_Guide
+git pull origin main
+
+echo [5/5] Technical_language
+cd /d C:\DATA\AI_OS\projects\Technical_language
+git pull origin main
+
+echo Готово!
 pause
 ```
