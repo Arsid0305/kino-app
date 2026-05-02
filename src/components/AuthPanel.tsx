@@ -99,7 +99,7 @@ export const AuthPanel = ({ session, syncStatus, onSendOtp, onVerifyOtp, onSignO
       ) : (
         <>
           <p className="text-xs text-muted-foreground">
-            Введите код из письма на <span className="text-foreground">{email}</span>
+            Введите 8-значный код из письма на <span className="text-foreground">{email}</span>
           </p>
           <div className="flex gap-2">
             <input
@@ -113,7 +113,7 @@ export const AuthPanel = ({ session, syncStatus, onSendOtp, onVerifyOtp, onSignO
             />
             <button
               onClick={() => void handleVerify()}
-              disabled={submitting || code.length < 4}
+              disabled={submitting || code.length < 8}
               className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
               {submitting ? '...' : 'OK'}
