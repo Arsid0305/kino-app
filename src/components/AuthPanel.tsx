@@ -113,7 +113,7 @@ export const AuthPanel = ({ session, syncStatus, onSendOtp, onVerifyOtp, onSignO
             />
             <button
               onClick={() => void handleVerify()}
-              disabled={submitting || code.length < 8}
+              disabled={submitting || code.length < 4}
               className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
               {submitting ? '...' : 'OK'}
