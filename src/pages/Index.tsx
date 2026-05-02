@@ -589,7 +589,7 @@ const Index = () => {
                 <a
                   href={`https://yandex.ru/search/?text=${encodeURIComponent((historyPreview.titleRu) + ' фильм ' + historyPreview.year)}`}
                   target="_blank" rel="noreferrer"
-                  className="block w-full py-2.5 rounded-xl border border-border text-muted-foreground text-sm font-medium text-center"
+                  className="block w-full py-2.5 rounded-xl border border-primary/40 text-primary text-sm font-medium text-center"
                 >
                   Яндекс
                 </a>
