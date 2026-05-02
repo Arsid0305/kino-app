@@ -4,9 +4,10 @@ on:
   push:
     branches-ignore:
       - main
+      - dev
 
 jobs:
-  automerge:
+  automerge-to-dev:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,18 +15,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      - name: Install & build
-        run: npm ci && npm run build
-
-      - name: Merge into main
+      - name: Merge into dev
         run: |
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
-          git checkout main
-          git merge --no-ff ${{ github.ref_name }} -m "Auto-merge ${{ github.ref_name }} into main"
-          git push origin main
+          git checkout dev || git checkout -b dev
+          git merge --no-ff ${{ github.ref_name }} -m "Auto-merge ${{ github.ref_name }} into dev"
+          git push origin dev
