@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Movie, MOOD_OPTIONS } from '@/lib/movieTypes';
+import { localizeReason } from '@/lib/localizeReason';
 
 const MOOD_ALIASES: Record<string, string> = {
   funny: 'happy', humor: 'happy', humorous: 'happy',
@@ -30,7 +31,6 @@ const GENRE_RU: Record<string, string> = {
 };
 
 const genreLabel = (g: string) => GENRE_RU[g.toLowerCase().trim()] ?? g;
-const hasCyrillic = (s: string) => /[а-яёА-ЯЁ]/.test(s);
 import { Star, Clock, User } from 'lucide-react';
 
 interface MovieCardProps {
@@ -59,10 +59,10 @@ export const MovieCard = ({ movie, onRate, onSkip, rateLabel = 'Смотрю!' }
 
         <p className="text-sm text-secondary-foreground leading-relaxed">{movie.description}</p>
 
-        {movie.reasonToWatch && hasCyrillic(movie.reasonToWatch) && (
+        {movie.reasonToWatch && localizeReason(movie.reasonToWatch) && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
-            <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{movie.reasonToWatch}</p>
+            <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{localizeReason(movie.reasonToWatch)}</p>
           </div>
         )}
 
