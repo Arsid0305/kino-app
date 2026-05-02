@@ -330,20 +330,15 @@ const Index = () => {
     setFilters({ type: null, timeOfDay: null, context: null, format: null, genre: null, mood: null, company: null });
   };
 
-  const handleSendMagicLink = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: window.location.origin,
-      },
-    });
+  const handleSendOtp = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({ email });
+    if (error) { toast.error(error.message); throw error; }
+    toast.success('Код отправлен на email');
+  };
 
-    if (error) {
-      toast.error(error.message);
-      throw error;
-    }
-
-    toast.success('Письмо со ссылкой для входа отправлено');
+  const handleVerifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+    if (error) { toast.error('Неверный код'); throw error; }
   };
 
   const handleSignOut = async () => {
@@ -417,7 +412,8 @@ const Index = () => {
         <AuthPanel
           session={session}
           syncStatus={syncStatus}
-          onSendLink={handleSendMagicLink}
+          onSendOtp={handleSendOtp}
+          onVerifyOtp={handleVerifyOtp}
           onSignOut={handleSignOut}
         />
 

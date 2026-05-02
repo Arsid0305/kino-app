@@ -5,23 +5,40 @@ import { Cloud, LogOut, Mail } from 'lucide-react';
 interface AuthPanelProps {
   session: Session | null;
   syncStatus: string;
-  onSendLink: (email: string) => Promise<void>;
+  onSendOtp: (email: string) => Promise<void>;
+  onVerifyOtp: (email: string, token: string) => Promise<void>;
   onSignOut: () => Promise<void>;
 }
 
-export const AuthPanel = ({ session, syncStatus, onSendLink, onSignOut }: AuthPanelProps) => {
+export const AuthPanel = ({ session, syncStatus, onSendOtp, onVerifyOtp, onSignOut }: AuthPanelProps) => {
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async () => {
+  const handleSend = async () => {
     if (!email.trim()) return;
-
     setSubmitting(true);
     try {
-      await onSendLink(email.trim());
-      setEmail('');
+      await onSendOtp(email.trim());
+      setStep('code');
     } catch {
-      // Error toast is shown by the caller.
+      // toast shown by caller
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (code.length < 6) return;
+    setSubmitting(true);
+    try {
+      await onVerifyOtp(email.trim(), code.trim());
+      setStep('email');
+      setEmail('');
+      setCode('');
+    } catch {
+      // toast shown by caller
     } finally {
       setSubmitting(false);
     }
@@ -49,10 +66,10 @@ export const AuthPanel = ({ session, syncStatus, onSendLink, onSignOut }: AuthPa
 
       {session ? (
         <div className="space-y-1">
-          <p className="text-sm text-secondary-foreground">{session.user.email ?? 'anonymous user'}</p>
+          <p className="text-sm text-secondary-foreground">{session.user.email ?? 'anonymous'}</p>
           <p className="text-xs text-muted-foreground">{syncStatus}</p>
         </div>
-      ) : (
+      ) : step === 'email' ? (
         <>
           <p className="text-xs text-muted-foreground">
             История оценок и watchlist будут храниться в Supabase и подтягиваться на любом устройстве после входа.
@@ -62,25 +79,52 @@ export const AuthPanel = ({ session, syncStatus, onSendLink, onSignOut }: AuthPa
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={email}
-                onChange={event => setEmail(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') void handleSubmit();
-                }}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') void handleSend(); }}
                 placeholder="you@example.com"
+                type="email"
                 className="w-full rounded-xl border border-border bg-background pl-9 pr-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <button
-              onClick={() => void handleSubmit()}
+              onClick={() => void handleSend()}
               disabled={submitting || !email.trim()}
               className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
-              Войти
+              {submitting ? '...' : 'Войти'}
             </button>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Пришлем magic link на email. Для этого в Supabase Auth должен быть включен Email provider.
+          <p className="text-[11px] text-muted-foreground">Пришлём код подтверждения на email.</p>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground">
+            Введите 6-значный код из письма на <span className="text-foreground">{email}</span>
           </p>
+          <div className="flex gap-2">
+            <input
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onKeyDown={e => { if (e.key === 'Enter') void handleVerify(); }}
+              placeholder="000000"
+              inputMode="numeric"
+              maxLength={6}
+              className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary tracking-widest text-center"
+            />
+            <button
+              onClick={() => void handleVerify()}
+              disabled={submitting || code.length < 6}
+              className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+            >
+              {submitting ? '...' : 'OK'}
+            </button>
+          </div>
+          <button
+            onClick={() => { setStep('email'); setCode(''); }}
+            className="text-[11px] text-muted-foreground underline"
+          >
+            Изменить email
+          </button>
         </>
       )}
     </div>
