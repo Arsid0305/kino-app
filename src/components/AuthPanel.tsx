@@ -106,14 +106,14 @@ export const AuthPanel = ({ session, syncStatus, onSendOtp, onVerifyOtp, onSignO
               value={code}
               onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
               onKeyDown={e => { if (e.key === 'Enter') void handleVerify(); }}
-              placeholder="код из письма"
+              placeholder="00000000"
               inputMode="numeric"
               maxLength={8}
               className="flex-1 rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary tracking-widest text-center"
             />
             <button
               onClick={() => void handleVerify()}
-              disabled={submitting || code.length < 4}
+              disabled={submitting || code.length < 8}
               className="px-4 rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
               {submitting ? '...' : 'OK'}
