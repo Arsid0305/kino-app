@@ -52,11 +52,15 @@
 
 - **Фронтенд**: React + Vite + TypeScript + Tailwind + shadcn/ui
 - **Анимации**: Framer Motion
+- **Excel-парсинг**: xlsx (runtime)
 - **БД**: Supabase (таблицы: `user_movies`, `chat_messages`)
 - **Auth**: Supabase Auth (email OTP + анонимный)
 - **Edge Functions** (Deno):
   - `ai-chat` — мультипровайдерный AI чат (Claude / GPT / Gemini / DeepSeek)
   - `movie-recommendation` — подбор фильмов через DeepSeek
+
+### devDependencies (не в рантайме)
+- `@resvg/resvg-js` — конвертация SVG → PNG для генерации PWA-иконок (`public/icon-192.png`, `public/icon-512.png`). Запускать через `node scripts/...` при смене иконки.
 
 ---
 
@@ -70,7 +74,7 @@
 | Vite v8 | ✅ |
 | Supabase CLI | ❌ Не работает |
 | Deno | ❌ Не установлен |
-| node_modules | ❌ Нет |
+| node_modules | ❌ Нет (есть package-lock.json, установить через `npm ci`) |
 | .env реальный | ❌ Только .env.example |
 
 Claude может писать и пушить код. Собрать фронтенд и задеплоить функции вручную — не может. Всё через GitHub Actions + Vercel автоматически.
@@ -92,23 +96,12 @@ _(пусто — фикси по мере поступления)_
 
 ---
 
-## Незавершённая чистка репо (низкий приоритет)
+## Чистка репо — выполнено ✅
 
-Следующие файлы запланированы к удалению, но ещё не удалены:
-
-### Мёртвые компоненты (никуда не импортируются)
-- `src/components/MovieListSheet.tsx`
-- `src/components/NavLink.tsx`
-- `src/hooks/use-mobile.tsx`
-
-### Неиспользуемые shadcn/ui компоненты (src/components/ui/)
-Оставить: `button, dialog, input, label, separator, sheet, skeleton, sonner, toast, toaster, toggle, tooltip`
-Удалить все остальные (~36 файлов)
-
-### Устаревшие Edge Functions
-- `supabase/functions/deepseek-chat/` — старая, заменена ai-chat
-- `supabase/functions/openai-chat/` — старая, заменена ai-chat
-(перед удалением из репо — удалить вручную в Supabase Dashboard)
+Всё из этого списка уже удалено:
+- Мёртвые компоненты: `MovieListSheet`, `NavLink`, `use-mobile`
+- Неиспользуемые shadcn/ui компоненты (~36 файлов)
+- Устаревшие Edge Functions: `deepseek-chat`, `openai-chat`
 
 ---
 
