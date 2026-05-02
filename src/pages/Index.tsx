@@ -569,7 +569,7 @@ const Index = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">{historyPreview.title} · {historyPreview.year}</p>
                 </div>
                 {historyPreview.description && <p className="text-sm text-secondary-foreground leading-relaxed">{historyPreview.description}</p>}
-                {historyPreview.reasonToWatch && (
+                {historyPreview.reasonToWatch && /[а-яёА-ЯЁ]/.test(historyPreview.reasonToWatch) && (
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
                     <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{historyPreview.reasonToWatch}</p>
@@ -677,7 +677,7 @@ const Index = () => {
                   {watchlistPreview.description && (
                     <p className="text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.description}</p>
                   )}
-                  {watchlistPreview.reasonToWatch && (
+                  {watchlistPreview.reasonToWatch && /[а-яёА-ЯЁ]/.test(watchlistPreview.reasonToWatch) && (
                     <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
                       <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{watchlistPreview.reasonToWatch}</p>

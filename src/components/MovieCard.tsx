@@ -30,6 +30,7 @@ const GENRE_RU: Record<string, string> = {
 };
 
 const genreLabel = (g: string) => GENRE_RU[g.toLowerCase().trim()] ?? g;
+const hasCyrillic = (s: string) => /[а-яёА-ЯЁ]/.test(s);
 import { Star, Clock, User } from 'lucide-react';
 
 interface MovieCardProps {
@@ -58,7 +59,7 @@ export const MovieCard = ({ movie, onRate, onSkip, rateLabel = 'Смотрю!' }
 
         <p className="text-sm text-secondary-foreground leading-relaxed">{movie.description}</p>
 
-        {movie.reasonToWatch && (
+        {movie.reasonToWatch && hasCyrillic(movie.reasonToWatch) && (
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-primary">Почему вам подойдёт</p>
             <p className="mt-1 text-sm text-secondary-foreground leading-relaxed">{movie.reasonToWatch}</p>
